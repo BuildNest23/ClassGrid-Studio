@@ -1072,7 +1072,7 @@ html.dark tfoot td.sc1, html.dark tfoot td.sc2 {
   .ps2-a .ps2-sigs > div { font-weight: 700; }
   .ps2-a .ps2-foot { display: flex; justify-content: space-between; align-items: stretch; margin-top: 4mm; background: #0b5d45; color: #fff; border-radius: 2mm; overflow: hidden; font-size: calc(8pt * var(--mult, 1)); font-weight: 700; }
   .ps2-a .ps2-foot span { padding: 1.8mm 3mm; }
-  .ps2-a .ps2-foot .ps2-foot-chip { background: #ffc72c; color: #0b5d45; padding: 1.8mm 4mm; }
+  .ps2-a .ps2-foot .ps2-foot-chip { margin-left: auto; background: #ffc72c; color: #0b5d45; padding: 1.8mm 4mm; }
 
   /* Report card — A */
   .print-sheet.ps2-card { min-height: 265mm; padding: 1.3mm; }
@@ -1144,4 +1144,7 @@ html.dark tfoot td.sc1, html.dark tfoot td.sc2 {
   .ps2-b .ps2-remarks { border: 0.3mm solid #000; padding: 3mm 4mm; min-height: 28mm; }
   .ps2-b .ps2-remarks label { display: block; font-size: calc(8pt * var(--mult, 1)); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 1.2mm; }
   .ps2-b .ps2-remarks-text { font-family: "Times New Roman", Times, Georgia, serif; font-style: italic; font-size: calc(10.5pt * var(--mult, 1)); }
+
+  /* Name / Father Name headings line up with the names below them */
+  .print-sheet.ps2 .ps2-table th.name { text-align: left; padding-left: calc(1.2mm * var(--mult, 1)); }
 }
