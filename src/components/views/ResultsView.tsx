@@ -15,6 +15,14 @@ import {
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
+  ResultPrintStyle,
+  loadPrintStyle,
+  savePrintStyle,
+  buildClassResultHTML,
+  buildReportCardsHTML,
+  buildMeritListHTML,
+} from '../../utils/resultPrint';
+import {
   Printer,
   Edit3,
   Trash2,
@@ -52,6 +60,13 @@ export const ResultsView: React.FC = () => {
   const [newSubName, setNewSubName] = useState("");
   const [newSubMax, setNewSubMax] = useState("");
   const [copyPickerOpen, setCopyPickerOpen] = useState(false);
+
+  // Print design: A = colour, B = black & white (remembered on this device)
+  const [printStyle, setPrintStyleState] = useState<ResultPrintStyle>(loadPrintStyle);
+  const choosePrintStyle = (st: ResultPrintStyle) => {
+    setPrintStyleState(st);
+    savePrintStyle(st);
+  };
 
   const activeAsmt = data.assessments.find(a => a.id === activeAssessmentId);
   const sortedStudents = getSortedStudents(data.students);
@@ -501,7 +516,15 @@ export const ResultsView: React.FC = () => {
 
   const otherAsmts = data.assessments.filter(a => a.id !== activeAsmt.id);
 
-  // Print Handlers
+  // Print Handlers (design A / B is chosen with the checkboxes in Print Options)
+  const printCtx = () => ({
+    style: printStyle,
+    data,
+    asmt: activeAsmt,
+    ranked,
+    totalMax,
+  });
+
   const handlePrintClassResults = () => {
     if (!activeAsmt.subjects.length) {
       toast("Add subjects first.", "error");
@@ -514,45 +537,7 @@ export const ResultsView: React.FC = () => {
       data.printSize,
       data.forceOrientation
     );
-    const headCells = activeAsmt.subjects.map(sub => `<th style="font-size:calc(${layout.headFontPt}pt * var(--mult, 1));overflow-wrap:anywhere">${esc(sub.name)}<br><span style="font-size:6pt;font-weight:600">(${sub.max})</span></th>`).join("");
-    const rows = ranked.map(item => {
-      const { s, r } = item;
-      const cls = (!r.passed && r.maxTotal > 0) ? "row-fail" : "";
-      const markCells = activeAsmt.subjects.map(sub => {
-        const raw = ((data.assessmentResults[activeAsmt.id] || {})[s.id] || {})[sub.id];
-        const val = raw === undefined ? "" : (raw === 'A' ? 'A' : String(raw));
-        return `<td class="num">${esc(val)}</td>`;
-      }).join("");
-
-      return `<tr class="${cls}">
-        <td class="center font-mono">${esc(s.rollNo || "—")}</td>
-        <td class="name">${esc(s.name || "—")}</td>
-        ${markCells}
-        <td class="num"><b>${r.total}</b></td>
-        <td class="num">${r.maxTotal > 0 ? r.pct + "%" : "—"}</td>
-        <td class="num font-bold" style="color:${r.passed ? '#166534' : '#991B1B'}">${r.passed ? 'PASS' : 'FAIL'}${r.manual && !r.computedPass ? ' ✱' : ''}</td>
-        <td class="num">${r.maxTotal > 0 ? ordinal(item.rank) : "—"}</td>
-      </tr>`;
-    }).join("");
-
-    const namePct = layout.namePct;
-    const fullPrintHTML = `<div class="print-sheet">
-      ${buildPrintHeaderHTML(activeAsmt.name + " — Class Result Sheet", `Pass mark: ${activeAsmt.passPercent}% • Total max: ${totalMax}`)}
-      <table class="res-print">
-        <thead><tr>
-          <th style="width:6%">Roll</th>
-          <th style="width:${namePct}%">Name</th>
-          ${headCells}
-          <th style="width:7%">Total</th>
-          <th style="width:7%">%</th>
-          <th style="width:8%">Result</th>
-          <th style="width:6%">Rank</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-
-    triggerPrint(fullPrintHTML, layout.orientation, data.printSize, data.forceOrientation);
+    triggerPrint(buildClassResultHTML(printCtx(), layout), layout.orientation, data.printSize, data.forceOrientation, true);
   };
 
   const handlePrintReportCards = () => {
@@ -560,62 +545,7 @@ export const ResultsView: React.FC = () => {
       toast("Add subjects first.", "error");
       return;
     }
-    const sigBlock = `<div style="display:flex;justify-content:space-between;gap:8mm;margin-top:22mm;padding:0 8mm;">
-      <div style="flex:1;border-top:1px solid #000;padding-top:1.5mm;text-align:center;font-size:9.5pt;font-weight:700;">Class Incharge</div>
-      <div style="flex:1;border-top:1px solid #000;padding-top:1.5mm;text-align:center;font-size:9.5pt;font-weight:700;">Parent / Guardian</div>
-      <div style="flex:1;border-top:1px solid #000;padding-top:1.5mm;text-align:center;font-size:9.5pt;font-weight:700;">Principal</div>
-    </div>`;
-
-    const cards = ranked.map(item => {
-      const { s, r } = item;
-      const remarkVal = (data.assessmentRemarks[activeAsmt.id] || {})[s.id] || "";
-      const subRows = activeAsmt.subjects.map(sub => {
-        const raw = ((data.assessmentResults[activeAsmt.id] || {})[s.id] || {})[sub.id];
-        const mx = Number(sub.max) || 0;
-        const v = raw === undefined ? "—" : (raw === 'A' ? 'A' : String(raw));
-        const num = raw === 'A' || raw === undefined ? 0 : Number(raw);
-        const pct = mx > 0 ? Math.round((num / mx) * 1000) / 10 : 0;
-        const failed = mx > 0 && pct < 33;
-
-        return `<tr>
-          <td style="text-align:left">${esc(sub.name)}</td>
-          <td>${mx}</td>
-          <td style="font-weight:700;${failed ? 'color:#991B1B' : ''}">${esc(v)}</td>
-          <td>${pct}%</td>
-        </tr>`;
-      }).join("");
-
-      return `<div class="print-sheet report-card">
-        ${buildPrintHeaderHTML(activeAsmt.name + " — Report Card")}
-        <div class="rc-info">
-          <div>Adm. No: <b>${esc(s.admissionNo || "—")}</b></div>
-          <div>Roll No: <b>${esc(s.rollNo || "—")}</b></div>
-        </div>
-        <div class="rc-info" style="border-top:0;padding-top:0">
-          <div>Name: <b>${esc(s.name || "—")}</b></div>
-          <div>Father: <b>${esc(s.fatherName || "—")}</b></div>
-        </div>
-        <table class="rc-sub-table">
-          <thead><tr><th style="text-align:left">Subject</th><th>Max</th><th>Obtained</th><th>%</th></tr></thead>
-          <tbody>${subRows}</tbody>
-        </table>
-        <table class="rc-summary-table">
-          <tr>
-            <td><div class="rc-lbl">Total</div><div class="rc-val">${r.total} / ${totalMax}</div></td>
-            <td><div class="rc-lbl">Percentage</div><div class="rc-val">${r.maxTotal > 0 ? r.pct + "%" : "—"}</div></td>
-            <td><div class="rc-lbl">Rank</div><div class="rc-val">${r.maxTotal > 0 ? ordinal(item.rank) : "—"}</div></td>
-            <td><div class="rc-lbl">Result</div><div class="rc-val" style="color:${r.passed ? '#166534' : '#991B1B'}">${r.passed ? 'PASS' : 'FAIL'}${r.manual && !r.computedPass ? ' ✱' : ''}</div></td>
-          </tr>
-        </table>
-        <div class="rc-remarks">
-          <b>Remarks</b>
-          ${esc(remarkVal || "")}
-        </div>
-        ${sigBlock}
-      </div>`;
-    }).join("");
-
-    triggerPrint(cards, "portrait", data.printSize, data.forceOrientation);
+    triggerPrint(buildReportCardsHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, true);
   };
 
   const handlePrintMeritList = () => {
@@ -623,39 +553,7 @@ export const ResultsView: React.FC = () => {
       toast("Add subjects first.", "error");
       return;
     }
-    const rows = ranked.map(item => {
-      const { s, r } = item;
-      const cls = (!r.passed && r.maxTotal > 0) ? "row-fail" : "";
-
-      return `<tr class="${cls}">
-        <td class="center font-mono">${esc(s.rollNo || "—")}</td>
-        <td class="name">${esc(s.name || "—")}</td>
-        <td class="name">${esc(s.fatherName || "—")}</td>
-        <td class="center font-bold">${r.total}</td>
-        <td class="center">${r.maxTotal > 0 ? r.pct + "%" : "—"}</td>
-        <td class="center font-bold" style="color:${r.passed ? '#166534' : '#991B1B'}">${r.passed ? 'PASS' : 'FAIL'}${r.manual && !r.computedPass ? ' ✱' : ''}</td>
-        <td class="center font-bold">${r.maxTotal > 0 ? ordinal(item.rank) : "—"}</td>
-      </tr>`;
-    }).join("");
-
-    // Name and Father Name have no fixed width, so they share the remaining space equally. Rank is the last column.
-    const fullPrintHTML = `<div class="print-sheet">
-      ${buildPrintHeaderHTML(activeAsmt.name + " — Merit List", "Ranked by total marks")}
-      <table class="merit-table">
-        <thead><tr>
-          <th style="width:8%">Roll</th>
-          <th>Name</th>
-          <th>Father Name</th>
-          <th style="width:10%">Total</th>
-          <th style="width:9%">%</th>
-          <th style="width:10%">Result</th>
-          <th style="width:9%">Rank</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-
-    triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    triggerPrint(buildMeritListHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, true);
   };
 
   return (
@@ -1065,6 +963,35 @@ export const ResultsView: React.FC = () => {
         <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">
           Print Options
         </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {([
+            { key: 'a', title: 'Design A — Colour', desc: 'Green & yellow, medals, progress bars' },
+            { key: 'b', title: 'Design B — Black & White', desc: 'Saves ink, clean photocopies' },
+          ] as Array<{ key: ResultPrintStyle; title: string; desc: string }>).map(opt => {
+            const checked = printStyle === opt.key;
+            return (
+              <label
+                key={opt.key}
+                className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer select-none transition-colors ${
+                  checked
+                    ? 'border-[#0B5D45] bg-[#E8F3EC] dark:bg-[#0B5D45]/20 dark:border-[#2E9E73]'
+                    : 'border-[#E7E5E4] dark:border-[#44403C] hover:bg-[#FAFAF9] dark:hover:bg-[#292524]'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => choosePrintStyle(opt.key)}
+                  className="mt-0.5 w-4 h-4 accent-[#0B5D45] shrink-0"
+                />
+                <span className="flex flex-col leading-tight">
+                  <span className="text-[13px] font-bold text-[#1C1917] dark:text-[#F5F5F4]">{opt.title}</span>
+                  <span className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5">{opt.desc}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
         <ActionGrid cols={3}>
           <ActionButton
             variant="primary"
