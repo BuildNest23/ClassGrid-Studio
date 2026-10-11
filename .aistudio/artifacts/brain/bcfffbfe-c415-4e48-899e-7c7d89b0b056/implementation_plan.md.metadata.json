@@ -1,6 +1,6 @@
 {
-  "summary":  "Updated implementation plan to keep the Average footer at the bottom, ensure student names slide behind the sticky Average row when scrolling down, and provide solid white background for the sticky student name and roll columns during horizontal scrolling.",
-  "updatedAt":  "2026-10-11T16:43:26.118021371Z",
+  "summary":  "Implementation plan to remove the 90px minimum threshold on the student Name column in both Results and Funds tables, sizing the column strictly to fit the longest student name in the active class.",
+  "updatedAt":  "2026-10-11T17:24:47.616326636Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

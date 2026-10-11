@@ -543,9 +543,9 @@ html.dark .cg-input {
   position: sticky;
   left: 44px;
   z-index: 2;
-  width: 130px !important;
-  min-width: 130px !important;
-  max-width: 130px !important;
+  width: var(--name-col-w, 130px) !important;
+  min-width: var(--name-col-w, 130px) !important;
+  max-width: var(--name-col-w, 130px) !important;
   background-color: #FFFFFF;
   box-shadow: 4px 0 6px -4px rgba(28, 25, 23, 0.12);
 }
@@ -608,26 +608,32 @@ tfoot {
   bottom: 0;
   z-index: 20;
   background-color: #FFFFFF !important;
+  opacity: 1 !important;
 }
 
 html.dark tfoot {
   background-color: #1C1917 !important;
+  opacity: 1 !important;
 }
 
 tfoot tr {
   background-color: #FFFFFF !important;
+  opacity: 1 !important;
 }
 
 html.dark tfoot tr {
   background-color: #1C1917 !important;
+  opacity: 1 !important;
 }
 
 tfoot td {
   background-color: #FFFFFF !important;
+  opacity: 1 !important;
 }
 
 html.dark tfoot td {
   background-color: #1C1917 !important;
+  opacity: 1 !important;
 }
 
 tfoot tr:first-child td {
@@ -641,10 +647,12 @@ html.dark tfoot tr:first-child td {
 tfoot td.sc1, tfoot td.sc2 {
   z-index: 25;
   background-color: #FFFFFF !important;
+  opacity: 1 !important;
 }
 
 html.dark tfoot td.sc1, html.dark tfoot td.sc2 {
   background-color: #1C1917 !important;
+  opacity: 1 !important;
 }
 
 /* Print Styles */

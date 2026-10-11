@@ -1,6 +1,6 @@
 import { SyncInput } from '../SyncInput';
 import { ActionGrid, ActionButton } from '../ActionGrid';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Fund, Student } from '../../types';
 import {
@@ -45,6 +45,13 @@ export const FundsView: React.FC = () => {
 
   const activeFund = data.funds.find(f => f.id === activeFundId);
   const sortedStudents = getSortedStudents(data.students);
+
+  // Dynamic Name column width: fits the longest student name in the active class with 90px min
+  const nameColWidth = useMemo(() => {
+    if (!sortedStudents.length) return 90;
+    const maxLen = Math.max(...sortedStudents.map(s => (s.name || "").trim().length), 4);
+    return Math.min(230, Math.max(90, Math.ceil(maxLen * 8.2 + 20)));
+  }, [sortedStudents]);
 
   // 1. FUND LIST VIEW
   if (!activeFund) {
@@ -517,7 +524,10 @@ export const FundsView: React.FC = () => {
       {/* Collection Matrix Table */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs">
         <div className="fund-wrap overflow-x-auto border border-[#E7E5E4] dark:border-[#44403C] rounded-xl max-h-[75vh]">
-          <table className="w-full text-xs text-center border-collapse">
+          <table
+            className="w-full text-xs text-center border-collapse"
+            style={{ '--name-col-w': `${nameColWidth}px` } as React.CSSProperties}
+          >
             <thead className="sticky top-0 z-10 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4]">
               <tr>
                 <th className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
@@ -554,12 +564,20 @@ export const FundsView: React.FC = () => {
                     className={`even:bg-[#FAFAF9] dark:even:bg-[#0C0A09]`}
                   >
                     <td className={`sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] font-mono font-bold ${
-                      isExempt ? 'bg-[#FAFAF9]! dark:bg-[#292524]!' : isPaid ? 'bg-[#D1FAE5]! dark:bg-[#064E3B]! text-[#065F46] dark:text-[#A7F3D0]' : 'bg-inherit'
+                      isExempt
+                        ? 'bg-[#FAFAF9]! dark:bg-[#292524]!'
+                        : isPaid
+                        ? 'bg-[#D1FAE5]! dark:bg-[#064E3B]! text-[#065F46] dark:text-[#A7F3D0]'
+                        : 'bg-white! dark:bg-[#1C1917]!'
                     }`}>
                       {s.rollNo || "—"}
                     </td>
                     <td className={`sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-left font-semibold truncate ${
-                      isExempt ? 'bg-[#FAFAF9]! dark:bg-[#292524]!' : isPaid ? 'bg-[#D1FAE5]! dark:bg-[#064E3B]! text-[#065F46] dark:text-[#A7F3D0]' : 'bg-inherit'
+                      isExempt
+                        ? 'bg-[#FAFAF9]! dark:bg-[#292524]!'
+                        : isPaid
+                        ? 'bg-[#D1FAE5]! dark:bg-[#064E3B]! text-[#065F46] dark:text-[#A7F3D0]'
+                        : 'bg-white! dark:bg-[#1C1917]!'
                     }`}>
                       {s.name || "(no name)"}
                     </td>

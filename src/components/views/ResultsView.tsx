@@ -1,6 +1,6 @@
 import { SyncInput } from '../SyncInput';
 import { ActionGrid, ActionButton } from '../ActionGrid';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Assessment, Student } from '../../types';
 import {
@@ -490,6 +490,13 @@ export const ResultsView: React.FC = () => {
     };
   });
 
+  // Dynamic Name column width: fits the longest student name in the active class with 90px min
+  const nameColWidth = useMemo(() => {
+    if (!ranked.length) return 90;
+    const maxLen = Math.max(...ranked.map(item => (item.s.name || "").trim().length), 4);
+    return Math.min(230, Math.max(90, Math.ceil(maxLen * 8.2 + 20)));
+  }, [ranked]);
+
   const otherAsmts = data.assessments.filter(a => a.id !== activeAsmt.id);
 
   // Print Handlers
@@ -822,7 +829,10 @@ export const ResultsView: React.FC = () => {
           </div>
         ) : (
           <div className="res-wrap overflow-x-auto border border-[#E7E5E4] dark:border-[#44403C] rounded-xl max-h-[75vh]">
-            <table className="res-table w-full text-xs text-center border-separate border-spacing-0">
+            <table
+              className="res-table w-full text-xs text-center border-separate border-spacing-0"
+              style={{ '--name-col-w': `${nameColWidth}px` } as React.CSSProperties}
+            >
               <thead className="sticky top-0 z-20 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4]">
                 <tr>
                   <th className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
@@ -996,42 +1006,42 @@ export const ResultsView: React.FC = () => {
                   );
                 })}
               </tbody>
-              <tfoot className="sticky bottom-0 z-20 bg-white dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] font-bold shadow-[0_-3px_10px_rgba(0,0,0,0.12)]">
-                <tr className="bg-white dark:bg-[#1C1917]">
-                  <td className="sc1 p-2 bg-white dark:bg-[#1C1917]"></td>
-                  <td className="sc2 p-2 text-right pr-2 bg-white dark:bg-[#1C1917]">
+              <tfoot className="sticky bottom-0 z-20 bg-white! dark:bg-[#1C1917]! text-[#1C1917] dark:text-[#F5F5F4] font-bold shadow-[0_-3px_10px_rgba(0,0,0,0.12)]">
+                <tr className="bg-white! dark:bg-[#1C1917]!">
+                  <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-white! dark:bg-[#1C1917]!"></td>
+                  <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-right pr-2 font-bold bg-white! dark:bg-[#1C1917]!">
                     Average →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 bg-white dark:bg-[#1C1917]">
+                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] font-mono text-center font-bold bg-white! dark:bg-[#1C1917]!">
                       {st.avg}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 bg-white dark:bg-[#1C1917]"></td>
+                  <td colSpan={5} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-white! dark:bg-[#1C1917]!"></td>
                 </tr>
-                <tr className="bg-white dark:bg-[#1C1917]">
-                  <td className="sc1 p-2 bg-white dark:bg-[#1C1917]"></td>
-                  <td className="sc2 p-2 text-right pr-2 bg-white dark:bg-[#1C1917]">
+                <tr className="bg-white! dark:bg-[#1C1917]!">
+                  <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-white! dark:bg-[#1C1917]!"></td>
+                  <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-right pr-2 font-bold bg-white! dark:bg-[#1C1917]!">
                     Highest →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 bg-white dark:bg-[#1C1917]">
+                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] font-mono text-center font-bold bg-white! dark:bg-[#1C1917]!">
                       {st.cnt ? st.hi : "—"}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 bg-white dark:bg-[#1C1917]"></td>
+                  <td colSpan={5} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-white! dark:bg-[#1C1917]!"></td>
                 </tr>
-                <tr className="bg-white dark:bg-[#1C1917]">
-                  <td className="sc1 p-2 bg-white dark:bg-[#1C1917]"></td>
-                  <td className="sc2 p-2 text-right pr-2 bg-white dark:bg-[#1C1917]">
+                <tr className="bg-white! dark:bg-[#1C1917]!">
+                  <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-white! dark:bg-[#1C1917]!"></td>
+                  <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-right pr-2 font-bold bg-white! dark:bg-[#1C1917]!">
                     Lowest →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 bg-white dark:bg-[#1C1917]">
+                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] font-mono text-center font-bold bg-white! dark:bg-[#1C1917]!">
                       {st.cnt ? st.lo : "—"}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 bg-white dark:bg-[#1C1917]"></td>
+                  <td colSpan={5} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-white! dark:bg-[#1C1917]!"></td>
                 </tr>
               </tfoot>
             </table>
