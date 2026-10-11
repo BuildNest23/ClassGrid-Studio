@@ -197,9 +197,48 @@ export function getPrintNameColPct(
     widestPx = Math.max(widestPx, getTextWidth(t, `400 ${fontPx}px ${family}`));
   }
   const textMm = widestPx * 25.4 / 96;
-  // cell padding (0.8mm each side, scaled) + border + small safety slack so names never wrap
-  const totalMm = textMm + 1.6 * mult + 0.6 + 2;
+  // Column widths are content-box (padding + border are added on top), so only a small safety slack is needed
+  const totalMm = textMm + 1.2;
   const pageMm = forceOrientation === 'landscape' ? 277 : 186;
   const pct = (totalMm / pageMm) * 100;
   return Math.round(Math.min(38, Math.max(8, pct)) * 10) / 10;
+}
+
+// Plans the Class Result Sheet layout so every subject heading fits its column.
+// Steps: (1) shrink the heading font a little, (2) if still too tight, switch to landscape
+// (only when the user has not forced an orientation in Settings).
+export function planResultPrintLayout(
+  studentNames: string[],
+  subjectNames: string[],
+  printSize: PrintSizeKey = 'm',
+  forceOrientation: string = ''
+): { orientation: 'portrait' | 'landscape'; namePct: number; headFontPt: number } {
+  const mult = (PRINT_SIZES[printSize] || PRINT_SIZES.m).mult;
+  const FIXED_PCT = 6 + 7 + 7 + 8 + 6; // Roll, Total, %, Result, Rank
+  const orders: Array<'portrait' | 'landscape'> =
+    forceOrientation === 'landscape' ? ['landscape'] :
+    forceOrientation === 'portrait' ? ['portrait'] : ['portrait', 'landscape'];
+  const n = Math.max(1, subjectNames.length);
+
+  let last = { orientation: orders[0], namePct: 20, headFontPt: 6 };
+  for (const orientation of orders) {
+    const pageMm = orientation === 'landscape' ? 277 : 186;
+    const namePct = getPrintNameColPct(studentNames, 8, printSize, orientation);
+    // Every column is content-box: padding (0.8mm each side, scaled) + border are added on top of its width.
+    const overheadMm = 1.6 * mult + 0.6;
+    const subjTotalMm = (pageMm * (100 - FIXED_PCT - namePct) / 100 - 6 * overheadMm) / n;
+    const subjMm = subjTotalMm - overheadMm - 0.6; // inner text space with a little slack
+    for (let fs = 7.5; fs >= 6; fs -= 0.5) {
+      const px = fs * mult * 96 / 72;
+      let longest = 0;
+      for (const nm of subjectNames) {
+        for (const word of String(nm || '').split(/\s+/)) {
+          longest = Math.max(longest, getTextWidth(word, `700 ${px}px ${TABLE_FONT_FAMILY}`) * 25.4 / 96);
+        }
+      }
+      if (longest <= subjMm) return { orientation, namePct, headFontPt: fs };
+    }
+    last = { orientation, namePct, headFontPt: 6 };
+  }
+  return last;
 }
