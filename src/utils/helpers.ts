@@ -179,3 +179,27 @@ export function getNameColWidth(names: string[], extraLabels: string[] = []): nu
   }
   return Math.min(230, Math.ceil(widest + 18));
 }
+
+// Snug width (as a % of the printable table width) for the Name column in printed tables.
+// Measures the longest name at the real print font size, so no space is wasted and names do not wrap.
+export function getPrintNameColPct(
+  names: string[],
+  fontPt: number,
+  printSize: PrintSizeKey = 'm',
+  forceOrientation: string = ''
+): number {
+  const mult = (PRINT_SIZES[printSize] || PRINT_SIZES.m).mult;
+  const fontPx = fontPt * mult * 96 / 72;
+  const family = TABLE_FONT_FAMILY;
+  let widestPx = getTextWidth('Name', `700 ${fontPx}px ${family}`);
+  for (const n of names) {
+    const t = (n || '—').trim() || '—';
+    widestPx = Math.max(widestPx, getTextWidth(t, `400 ${fontPx}px ${family}`));
+  }
+  const textMm = widestPx * 25.4 / 96;
+  // cell padding (0.8mm each side, scaled) + border + small safety slack so names never wrap
+  const totalMm = textMm + 1.6 * mult + 0.6 + 2;
+  const pageMm = forceOrientation === 'landscape' ? 277 : 186;
+  const pct = (totalMm / pageMm) * 100;
+  return Math.round(Math.min(38, Math.max(8, pct)) * 10) / 10;
+}
