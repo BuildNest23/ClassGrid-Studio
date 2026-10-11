@@ -19,10 +19,14 @@ export function newFundId(): string {
 export function ordinal(n: number | string): string {
   const num = Number(n);
   if (!num || num <= 0 || !isFinite(num)) return "—";
-  if (num === 1) return "1st";
-  if (num === 2) return "2nd";
-  if (num === 3) return "3rd";
-  return "";
+  const mod100 = num % 100;
+  if (mod100 >= 11 && mod100 <= 13) return num + "th";
+  switch (num % 10) {
+    case 1: return num + "st";
+    case 2: return num + "nd";
+    case 3: return num + "rd";
+    default: return num + "th";
+  }
 }
 
 export function todayISO(): string {
