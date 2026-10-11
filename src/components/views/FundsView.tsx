@@ -12,6 +12,7 @@ import {
   getSortedStudents,
   esc,
   getNameColWidth,
+  getPrintNameColPct,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
@@ -375,17 +376,18 @@ export const FundsView: React.FC = () => {
       : `Collected: ${fmtMoney(stats.collected)} • Pending: ${fmtMoney(stats.pending)} • Paid: ${stats.paid} • Partial: ${stats.partial} • Pending: ${stats.pend} • Exempt: ${stats.exempt}`;
     const amtDesc = stats.variable ? "Variable amount" : `${fmtMoney(activeFund.amount)} per student`;
 
+    const namePct = getPrintNameColPct(sortedStudents.map(st => st.name || ""), 9, data.printSize, data.forceOrientation);
     const fullPrintHTML = `<div class="print-sheet">
       ${buildPrintHeaderHTML(activeFund.name + " — Collection Sheet", (activeFund.dueDate ? "Due: " + esc(prettyShortDate(activeFund.dueDate)) + " • " : "") + amtDesc)}
       <table class="fund-print">
         <thead><tr>
           <th style="width:6%">#</th>
           <th style="width:9%">Roll</th>
-          <th style="width:30%">Name</th>
+          <th style="width:${namePct}%">Name</th>
           <th style="width:12%">Amount</th>
           <th style="width:13%">Status</th>
           <th style="width:15%">Date</th>
-          <th style="width:15%">Note</th>
+          <th>Note</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -411,6 +413,7 @@ export const FundsView: React.FC = () => {
       }
     });
 
+    const pendingNamePct = getPrintNameColPct(pendingRows.map(r => r.s.name || ""), 9, data.printSize, data.forceOrientation);
     let bodyHTML = "";
     if (!pendingRows.length) {
       bodyHTML = `<div class="no-absents">Everyone has paid or is exempt.</div>`;
@@ -419,10 +422,10 @@ export const FundsView: React.FC = () => {
         <thead><tr>
           <th style="width:6%">#</th>
           <th style="width:9%">Roll</th>
-          <th style="width:32%">Name</th>
+          <th style="width:${pendingNamePct}%">Name</th>
           <th style="width:16%">Paid</th>
           <th style="width:16%">Owed</th>
-          <th style="width:21%">Note</th>
+          <th>Note</th>
         </tr></thead>
         <tbody>${pendingRows.map((row, i) => {
           const p = (data.fundPayments[activeFund.id] || {})[row.s.id] || {};

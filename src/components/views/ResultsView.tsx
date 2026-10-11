@@ -10,6 +10,7 @@ import {
   getSortedStudents,
   esc,
   getNameColWidth,
+  getPrintNameColPct,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
@@ -526,12 +527,13 @@ export const ResultsView: React.FC = () => {
       </tr>`;
     }).join("");
 
+    const namePct = getPrintNameColPct(ranked.map(item => item.s.name || ""), 8, data.printSize, data.forceOrientation);
     const fullPrintHTML = `<div class="print-sheet">
       ${buildPrintHeaderHTML(activeAsmt.name + " — Class Result Sheet", `Pass mark: ${activeAsmt.passPercent}% • Total max: ${totalMax}`)}
       <table class="res-print">
         <thead><tr>
           <th style="width:8%">Roll</th>
-          <th style="width:22%">Name</th>
+          <th style="width:${namePct}%">Name</th>
           ${headCells}
           <th style="width:9%">Total</th>
           <th style="width:8%">%</th>
@@ -628,14 +630,15 @@ export const ResultsView: React.FC = () => {
       </tr>`;
     }).join("");
 
+    const namePct = getPrintNameColPct(ranked.map(item => item.s.name || ""), 9.5, data.printSize, data.forceOrientation);
     const fullPrintHTML = `<div class="print-sheet">
       ${buildPrintHeaderHTML(activeAsmt.name + " — Merit List", "Ranked by total marks")}
       <table class="merit-table">
         <thead><tr>
           <th style="width:10%">Rank</th>
           <th style="width:10%">Roll</th>
-          <th style="width:30%">Name</th>
-          <th style="width:22%">Father Name</th>
+          <th style="width:${namePct}%">Name</th>
+          <th>Father Name</th>
           <th style="width:12%">Total</th>
           <th style="width:8%">%</th>
           <th style="width:8%">Result</th>
