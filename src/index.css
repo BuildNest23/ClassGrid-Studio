@@ -999,3 +999,149 @@ html.dark tfoot td.sc1, html.dark tfoot td.sc2 {
     font-size: calc(12pt * var(--mult, 1)) !important;
   }
 }
+
+/* ==========================================================================
+   Result prints — Design A (colour) and Design B (black & white)
+   Used by: Class Result Sheet, Report Cards, Merit List  (src/utils/resultPrint.ts)
+   ========================================================================== */
+@media print {
+  .ps2, .ps2 * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-sizing: border-box;
+  }
+
+  .print-sheet.ps2 {
+    display: flex;
+    flex-direction: column;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  .print-sheet.ps2-port { min-height: 264mm; }
+  .print-sheet.ps2-land { min-height: 181mm; }
+  .print-sheet.ps2 .ps2-spacer { flex: 1 1 auto; min-height: 6mm; }
+  .print-sheet.ps2 tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ---------- header (shared layout) ---------- */
+  .ps2 .ps2-head { display: flex; align-items: center; gap: 5mm; margin-bottom: 3mm; }
+  .ps2 .ps2-logo { flex: 0 0 22mm; width: 22mm; height: 22mm; display: flex; align-items: center; justify-content: center; }
+  .ps2 .ps2-logo img { max-width: 22mm; max-height: 22mm; display: block; }
+  .ps2 .ps2-logo-spacer { visibility: hidden; }
+  .ps2 .ps2-head-text { flex: 1; min-width: 0; text-align: center; }
+  .print-sheet.ps2 .ps2-head h1 { margin: 0 0 1.2mm; text-align: center; line-height: 1.15; }
+  .print-sheet.ps2 .ps2-head-sub { margin: 0; text-align: center; }
+
+  .ps2 .ps2-sigs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8mm; margin-top: 8mm; }
+  .ps2 .ps2-sigs > div { border-top: 0.3mm solid #000; padding-top: 1.6mm; text-align: center; font-size: calc(9pt * var(--mult, 1)); }
+  .print-sheet.ps2 table { border: 0 !important; }
+  .print-sheet.ps2 .ps2-table th, .print-sheet.ps2 .ps2-table td { font-size: calc(9pt * var(--mult, 1)); vertical-align: middle; }
+  .print-sheet.ps2 .ps2-table td.name, .print-sheet.ps2 .ps2-table td.left, .print-sheet.ps2 .ps2-table th.left { text-align: left; }
+  .print-sheet.ps2 .ps2-table td.num { text-align: center; }
+  .ps2 .ps2-strong { font-weight: 800; }
+  .ps2 .ps2-th-max { font-size: 6pt; font-weight: 600; }
+  .ps2 .ps2-tag { display: inline-block; font-size: calc(7.5pt * var(--mult, 1)); font-weight: 800; letter-spacing: 0.06em; line-height: 1.2; }
+  .ps2 .ps2-bar { height: 1.4mm; border-radius: 1mm; margin-top: 0.8mm; overflow: hidden; }
+  .ps2 .ps2-bar i { display: block; height: 100%; }
+  .ps2 .ps2-remarks-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  /* ================= DESIGN A — colour ================= */
+  .ps2-a { color: #1c1917; }
+  .ps2-a .ps2-logo { border-radius: 50%; }
+  .ps2-a .ps2-logo-empty { border: 0.6mm solid #0b5d45; background: #e8f3ec; color: #0b5d45; font-size: 7pt; font-weight: 800; text-align: center; line-height: 1.25; }
+  .ps2-a .ps2-logo img { border-radius: 50%; }
+  .print-sheet.ps2-a .ps2-head h1 { color: #0b5d45; font-size: calc(21pt * var(--mult, 1)); font-weight: 800; }
+  .print-sheet.ps2-a .ps2-head-sub { color: #3b3b4f; font-size: calc(9.5pt * var(--mult, 1)); font-weight: 700; }
+  .ps2-a .ps2-title-bar { background: #0b5d45; color: #fff; text-align: center; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: calc(15pt * var(--mult, 1)); padding: 2.2mm 4mm; border-radius: 2.5mm; }
+  .ps2-a .ps2-title-strip { background: #ffc72c; color: #0b5d45; text-align: center; font-weight: 800; text-transform: uppercase; font-size: calc(9.5pt * var(--mult, 1)); padding: 1.6mm 4mm; width: 72%; margin: 0 auto 4mm; border-radius: 0 0 3mm 3mm; }
+  .ps2-a .ps2-info { display: flex; justify-content: space-between; gap: 4mm; background: #e8f3ec; border: 0.3mm solid #9fd0b6; border-radius: 2mm; padding: 1.8mm 3mm; margin-bottom: 4mm; color: #0b5d45; font-weight: 700; font-size: calc(8.5pt * var(--mult, 1)); }
+  .print-sheet.ps2-a .ps2-table { border: 0.3mm solid #0b5d45 !important; }
+  .print-sheet.ps2-a .ps2-table th { background: #0b5d45; color: #fff; border: 0.25mm solid #0b5d45 !important; font-weight: 700; text-align: center; padding: calc(2mm * var(--mult, 1)) calc(1mm * var(--mult, 1)); }
+  .print-sheet.ps2-a .ps2-table td { background: #fff; color: #1c1917; border: 0.25mm solid #b9dbc9 !important; padding: calc(1.7mm * var(--mult, 1)) calc(1.2mm * var(--mult, 1)); }
+  .print-sheet.ps2-a .ps2-table tbody tr:nth-child(even) td { background: #f2f8f4; }
+  .print-sheet.ps2-a .ps2-table td.name { font-weight: 700; }
+  .print-sheet.ps2-a .ps2-table td.ps2-failmark { color: #b91c1c; font-weight: 800; background: #feecec; }
+  .ps2-a .ps2-tag { border-radius: 99px; padding: 0.4mm 2.6mm; }
+  .ps2-a .ps2-pass { color: #166534; background: #dcfce7; border: 0.25mm solid #86d9a3; }
+  .ps2-a .ps2-fail { color: #991b1b; background: #fee2e2; border: 0.25mm solid #f5a3a3; }
+  .ps2-a .ps2-bar { background: #e3efe8; }
+  .ps2-a .ps2-bar i { background: #2e9e73; }
+  .ps2-a .ps2-pct-num { line-height: 1.1; }
+  .ps2-a .ps2-medal { display: inline-block; width: 6mm; height: 6mm; line-height: 6mm; border-radius: 50%; color: #fff; font-weight: 800; font-size: calc(8pt * var(--mult, 1)); text-align: center; }
+  .ps2-a .ps2-medal-1 { background: #d9a400; }
+  .ps2-a .ps2-medal-2 { background: #8e949c; }
+  .ps2-a .ps2-medal-3 { background: #b07035; }
+  .ps2-a .ps2-sigs > div { font-weight: 700; }
+  .ps2-a .ps2-foot { display: flex; justify-content: space-between; align-items: stretch; margin-top: 4mm; background: #0b5d45; color: #fff; border-radius: 2mm; overflow: hidden; font-size: calc(8pt * var(--mult, 1)); font-weight: 700; }
+  .ps2-a .ps2-foot span { padding: 1.8mm 3mm; }
+  .ps2-a .ps2-foot .ps2-foot-chip { background: #ffc72c; color: #0b5d45; padding: 1.8mm 4mm; }
+
+  /* Report card — A */
+  .print-sheet.ps2-card { min-height: 265mm; padding: 1.3mm; }
+  .print-sheet.ps2-card .ps2-cardframe { flex: 1 1 auto; display: flex; flex-direction: column; padding: 5mm 6mm 4mm; }
+  .print-sheet.ps2-a.ps2-card { border: 0.7mm solid #0b5d45; border-radius: 4mm; }
+  .ps2-a .ps2-cardframe { border: 0.35mm solid #ffc72c; border-radius: 3mm; }
+  .ps2-a .ps2-idbox { display: flex; align-items: center; gap: 5mm; background: #e8f3ec; border: 0.3mm solid #9fd0b6; border-radius: 3mm; padding: 3.5mm 5mm; margin-bottom: 4mm; }
+  .ps2-a .ps2-avatar { flex: 0 0 13mm; width: 13mm; height: 13mm; line-height: 13mm; border-radius: 50%; background: #0b5d45; color: #fff; font-size: 18pt; font-weight: 800; text-align: center; }
+  .ps2-a .ps2-idgrid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+  .ps2-a .ps2-idgrid label { display: block; color: #4b6b5c; font-size: calc(8pt * var(--mult, 1)); font-weight: 600; }
+  .ps2-a .ps2-idgrid b { font-size: calc(11pt * var(--mult, 1)); font-weight: 800; }
+  .print-sheet.ps2-a .ps2-subtable td { padding: calc(2.6mm * var(--mult, 1)) calc(2mm * var(--mult, 1)); font-size: calc(10pt * var(--mult, 1)); text-align: center; }
+  .print-sheet.ps2-a .ps2-subtable td.left { font-weight: 800; }
+  .print-sheet.ps2-a .ps2-subtable th.left { padding-left: 3mm; }
+  .print-sheet.ps2-a .ps2-subtable td.left { padding-left: 3mm; }
+  .print-sheet.ps2-a .ps2-subtable td.pctcell { padding-left: 3mm; padding-right: 3mm; }
+  .ps2-a .ps2-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 4mm 0; }
+  .ps2-a .ps2-summary > div { border: 0.35mm solid #0b5d45; border-radius: 2.5mm; overflow: hidden; text-align: center; }
+  .ps2-a .ps2-summary label { display: block; background: #0b5d45; color: #fff; font-size: calc(7.5pt * var(--mult, 1)); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 1mm 0; }
+  .ps2-a .ps2-summary b { display: block; padding: 3mm 1mm; font-size: calc(16pt * var(--mult, 1)); font-weight: 800; }
+  .ps2-a .ps2-summary b small { font-size: calc(8.5pt * var(--mult, 1)); color: #666; font-weight: 700; }
+  .ps2-a .ps2-summary b.ps2-rank { color: #b47f00; }
+  .ps2-a .ps2-res-pass { color: #166534; }
+  .ps2-a .ps2-res-fail { color: #b91c1c; }
+  .ps2-a .ps2-remarks { border: 0.3mm dashed #8cc3a8; border-radius: 3mm; padding: 3mm 4mm; min-height: 28mm; font-size: calc(10pt * var(--mult, 1)); }
+  .ps2-a .ps2-remarks label { display: block; color: #0b5d45; font-size: calc(8pt * var(--mult, 1)); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.2mm; }
+
+  /* ================= DESIGN B — black & white ================= */
+  .ps2-b { color: #000; }
+  .print-sheet.ps2-b .ps2-head h1 { font-family: "Times New Roman", Times, Georgia, serif; font-weight: 700; font-size: calc(22pt * var(--mult, 1)); letter-spacing: 0.02em; color: #000; }
+  .print-sheet.ps2-b .ps2-head-sub { font-size: calc(8.5pt * var(--mult, 1)); letter-spacing: 0.12em; text-transform: uppercase; color: #333; font-weight: 500; }
+  .print-sheet.ps2-b .ps2-head-note { margin-top: 0.8mm; font-weight: 700; }
+  .ps2-b .ps2-rule { border-top: 0.35mm solid #000; border-bottom: 0.35mm solid #000; height: 1.1mm; margin: 2mm 0 4mm; }
+  .ps2-b .ps2-title { text-align: center; font-weight: 800; text-transform: uppercase; letter-spacing: 0.32em; font-size: calc(12.5pt * var(--mult, 1)); }
+  .ps2-b .ps2-title-sub { text-align: center; color: #333; letter-spacing: 0.04em; font-size: calc(9.5pt * var(--mult, 1)); margin: 1mm 0 4mm; }
+  .ps2-b .ps2-info { display: flex; justify-content: space-between; gap: 4mm; border-top: 0.25mm solid #000; border-bottom: 0.25mm solid #000; padding: 1.6mm 0.5mm; margin-bottom: 3mm; font-size: calc(8.5pt * var(--mult, 1)); }
+  .print-sheet.ps2-b .ps2-table { border: 0 !important; border-top: 0.7mm solid #000 !important; border-bottom: 0.7mm solid #000 !important; }
+  .print-sheet.ps2-b .ps2-table th { background: #fff; color: #000; border: 0 !important; border-bottom: 0.7mm solid #000 !important; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; text-align: center; padding: calc(2.4mm * var(--mult, 1)) calc(1mm * var(--mult, 1)); }
+  .print-sheet.ps2-b .ps2-res th { text-transform: none; letter-spacing: 0; }
+  .print-sheet.ps2-b .ps2-table td { background: #fff; color: #000; border: 0 !important; border-bottom: 0.2mm solid #bbb !important; padding: calc(1.9mm * var(--mult, 1)) calc(1.2mm * var(--mult, 1)); }
+  .print-sheet.ps2-b .ps2-table tbody tr:last-child td { border-bottom: 0 !important; }
+  .print-sheet.ps2-b .ps2-table td.ps2-failmark { font-weight: 800; text-decoration: underline; }
+  .print-sheet.ps2-b .ps2-table tr.ps2-toprow td { background: #ececec; font-weight: 700; }
+  .ps2-b .ps2-tag { padding: 0.3mm 2.4mm; }
+  .ps2-b .ps2-pass { border: 0.3mm solid #000; color: #000; background: #fff; }
+  .ps2-b .ps2-fail { border: 0.3mm solid #000; color: #fff; background: #000; }
+  .ps2-b .ps2-sigs > div { letter-spacing: 0.04em; }
+  .ps2-b .ps2-foot { margin-top: 3mm; border-top: 0.2mm solid #aaa; padding-top: 1.5mm; color: #444; font-size: calc(7.5pt * var(--mult, 1)); }
+
+  /* Report card — B */
+  .print-sheet.ps2-b.ps2-card { border: 0.8mm solid #000; }
+  .ps2-b .ps2-cardframe { border: 0.3mm solid #000; }
+  .ps2-b .ps2-idrows { margin-bottom: 4mm; }
+  .ps2-b .ps2-idrow { display: flex; gap: 8mm; margin-bottom: 3mm; }
+  .ps2-b .ps2-field { flex: 1; display: flex; align-items: baseline; gap: 1.5mm; min-width: 0; }
+  .ps2-b .ps2-field label { font-size: calc(7.5pt * var(--mult, 1)); letter-spacing: 0.1em; text-transform: uppercase; color: #333; white-space: nowrap; }
+  .ps2-b .ps2-field i { flex: 1; border-bottom: 0.3mm dotted #444; min-width: 4mm; }
+  .ps2-b .ps2-field b { font-family: "Times New Roman", Times, Georgia, serif; font-size: calc(11.5pt * var(--mult, 1)); white-space: nowrap; }
+  .print-sheet.ps2-b .ps2-subtable th { text-align: center; }
+  .print-sheet.ps2-b .ps2-subtable th.left { text-align: left; padding-left: 2mm; }
+  .print-sheet.ps2-b .ps2-subtable td { padding: calc(3mm * var(--mult, 1)) calc(2mm * var(--mult, 1)); font-size: calc(10.5pt * var(--mult, 1)); text-align: center; }
+  .print-sheet.ps2-b .ps2-subtable td.left { padding-left: 2mm; }
+  .ps2-b .ps2-summary { display: grid; grid-template-columns: repeat(4, 1fr); border: 0.7mm solid #000; margin: 5mm 0; }
+  .ps2-b .ps2-summary > div { text-align: center; padding: 2.5mm 1mm; border-left: 0.3mm solid #000; }
+  .ps2-b .ps2-summary > div:first-child { border-left: 0; }
+  .ps2-b .ps2-summary label { display: block; font-size: calc(7.5pt * var(--mult, 1)); letter-spacing: 0.12em; text-transform: uppercase; color: #333; }
+  .ps2-b .ps2-summary b { display: block; font-family: "Times New Roman", Times, Georgia, serif; font-size: calc(19pt * var(--mult, 1)); font-weight: 700; margin-top: 1mm; }
+  .ps2-b .ps2-summary b small { font-size: calc(9pt * var(--mult, 1)); font-weight: 700; }
+  .ps2-b .ps2-remarks { border: 0.3mm solid #000; padding: 3mm 4mm; min-height: 28mm; }
+  .ps2-b .ps2-remarks label { display: block; font-size: calc(8pt * var(--mult, 1)); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 1.2mm; }
+  .ps2-b .ps2-remarks-text { font-family: "Times New Roman", Times, Georgia, serif; font-style: italic; font-size: calc(10.5pt * var(--mult, 1)); }
+}
