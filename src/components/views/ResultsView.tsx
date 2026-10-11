@@ -823,7 +823,7 @@ export const ResultsView: React.FC = () => {
         ) : (
           <div className="res-wrap overflow-x-auto border border-[#E7E5E4] dark:border-[#44403C] rounded-xl max-h-[75vh]">
             <table className="w-full text-xs text-center border-collapse">
-              <thead className="sticky top-0 z-10 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4]">
+              <thead className="sticky top-0 z-20 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4]">
                 <tr>
                   <th className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
                     Roll
@@ -860,16 +860,28 @@ export const ResultsView: React.FC = () => {
                   const asmtRes = (data.assessmentResults[activeAsmt.id] || {})[s.id] || {};
                   const remarksVal = (data.assessmentRemarks[activeAsmt.id] || {})[s.id] || "";
                   const rowFail = !r.passed && r.maxTotal > 0;
+                  const isEven = sIdx % 2 === 1;
+                  const stickyBg = rowFail
+                    ? 'bg-[#FDF6F5] dark:bg-[#2B1414]'
+                    : isEven
+                    ? 'bg-[#FAFAF9] dark:bg-[#0C0A09]'
+                    : 'bg-white dark:bg-[#1C1917]';
 
                   return (
                     <tr
                       key={s.id}
-                      className={`${rowFail ? 'bg-[#FDF6F5] dark:bg-[#2B1414]' : 'even:bg-[#FAFAF9] dark:even:bg-[#0C0A09]'}`}
+                      className={
+                        rowFail
+                          ? 'bg-[#FDF6F5] dark:bg-[#2B1414]'
+                          : isEven
+                          ? 'bg-[#FAFAF9] dark:bg-[#0C0A09]'
+                          : 'bg-white dark:bg-[#1C1917]'
+                      }
                     >
-                      <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] font-mono font-bold bg-inherit">
+                      <td className={`sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] font-mono font-bold ${stickyBg}`}>
                         {s.rollNo || "—"}
                       </td>
-                      <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-left font-semibold truncate bg-inherit">
+                      <td className={`sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-left font-semibold truncate ${stickyBg}`}>
                         {s.name || "(no name)"}
                       </td>
 
@@ -984,18 +996,18 @@ export const ResultsView: React.FC = () => {
                   );
                 })}
               </tbody>
-              <tfoot className="sticky bottom-0 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4] font-bold border-t-2 border-t-[#D6D3D1] dark:border-t-[#44403C]">
+              <tfoot className="sticky bottom-0 z-10 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4] font-bold border-t-2 border-t-[#D6D3D1] dark:border-t-[#44403C] shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
                 <tr>
                   <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
                   <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-right pr-2 bg-[#FAFAF9] dark:bg-[#292524]">
                     Average →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C]">
+                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
                       {st.avg}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C]"></td>
+                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
                 </tr>
                 <tr>
                   <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
@@ -1003,11 +1015,11 @@ export const ResultsView: React.FC = () => {
                     Highest →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C]">
+                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
                       {st.cnt ? st.hi : "—"}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C]"></td>
+                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
                 </tr>
                 <tr>
                   <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
@@ -1015,11 +1027,11 @@ export const ResultsView: React.FC = () => {
                     Lowest →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C]">
+                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
                       {st.cnt ? st.lo : "—"}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C]"></td>
+                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
                 </tr>
               </tfoot>
             </table>

@@ -528,32 +528,61 @@ html.dark .cg-input {
   color: #F5F5F4;
 }
 
-/* Frozen Table Columns */
+/* Frozen Table Columns & Sticky Stacking Order */
 .sc1 {
   position: sticky;
   left: 0;
-  z-index: 3;
+  z-index: 2;
   width: 44px !important;
   min-width: 44px !important;
   max-width: 44px !important;
+  background-color: #FFFFFF;
 }
 
 .sc2 {
   position: sticky;
   left: 44px;
-  z-index: 3;
+  z-index: 2;
   width: 130px !important;
   min-width: 130px !important;
   max-width: 130px !important;
+  background-color: #FFFFFF;
   box-shadow: 4px 0 6px -4px rgba(28, 25, 23, 0.12);
 }
 
+html.dark .sc1,
+html.dark .sc2 {
+  background-color: #1C1917;
+}
+
+/* Header sticky stacking: top of everything */
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
 thead th.sc1, thead th.sc2 {
-  z-index: 4;
+  z-index: 25;
+}
+
+/* Footer sticky stacking: above tbody rows so names scroll underneath */
+tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+tfoot td {
+  background-color: #FAFAF9;
+}
+
+html.dark tfoot td {
+  background-color: #292524;
 }
 
 tfoot td.sc1, tfoot td.sc2 {
-  z-index: 3;
+  z-index: 15;
 }
 
 /* Print Styles */
