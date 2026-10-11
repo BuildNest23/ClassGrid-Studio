@@ -18,6 +18,8 @@ import {
   ResultPrintStyle,
   loadPrintStyle,
   savePrintStyle,
+  loadPrintFooter,
+  savePrintFooter,
   buildClassResultHTML,
   buildReportCardsHTML,
   buildMeritListHTML,
@@ -63,6 +65,11 @@ export const ResultsView: React.FC = () => {
 
   // Print design: A = colour, B = black & white (remembered on this device)
   const [printStyle, setPrintStyleState] = useState<ResultPrintStyle>(loadPrintStyle);
+  const [printFooter, setPrintFooterState] = useState<string>(loadPrintFooter);
+  const changePrintFooter = (text: string) => {
+    setPrintFooterState(text);
+    savePrintFooter(text);
+  };
   const choosePrintStyle = (st: ResultPrintStyle) => {
     setPrintStyleState(st);
     savePrintStyle(st);
@@ -523,6 +530,7 @@ export const ResultsView: React.FC = () => {
     asmt: activeAsmt,
     ranked,
     totalMax,
+    footerText: printFooter,
   });
 
   const handlePrintClassResults = () => {
@@ -992,6 +1000,14 @@ export const ResultsView: React.FC = () => {
             );
           })}
         </div>
+        <input
+          type="text"
+          value={printFooter}
+          onChange={e => changePrintFooter(e.target.value)}
+          maxLength={80}
+          placeholder="Footer text for prints (optional)"
+          className="w-full px-3 py-2 text-[13px] rounded-xl border border-[#E7E5E4] dark:border-[#44403C] bg-white dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#0B5D45]"
+        />
         <ActionGrid cols={3}>
           <ActionButton
             variant="primary"
