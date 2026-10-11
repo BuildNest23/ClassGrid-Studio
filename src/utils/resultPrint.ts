@@ -1,5 +1,5 @@
 import { AppData, Assessment, Student } from '../types';
-import { esc, ordinal } from './helpers';
+import { esc, ordinal, PRINT_SIZES } from './helpers';
 
 export type ResultPrintStyle = 'a' | 'b';
 export const PRINT_STYLE_KEY = 'classroomResultPrintStyle';
@@ -244,10 +244,48 @@ export function buildClassResultHTML(
 
 // ---------- 2. Report Cards ----------
 
+// Report-card rows shrink automatically as subjects are added so a card always fits on one page.
+// The size is planned for the shortest common paper (US Letter, ~255 mm of printable height).
+// Numbers below were measured from real renders of the card.
+const CARD_TARGET_MM = 249;
+function cardDensity(c: ResultPrintCtx, mult: number): { pad: number; fs: number; remH: number; ok: boolean } {
+  const n = Math.max(1, c.asmt.subjects.length);
+  const isA = c.style === 'a';
+  // Fixed height of everything except the subject rows and the remarks box (at Medium print size)
+  const fixed = (isA ? 158.5 : 140) + (isA ? 108 : 125) * (mult - 1) * (mult > 1 ? 0.7 : 0.45);
+  // Height of a row's content (without padding), measured: A has a progress bar under the text
+  const rowContent = (fs: number) => (isA ? 2.6 + 0.37 * fs * mult : 0.3 + 0.42 * fs * mult);
+
+  for (const fs of [10, 9.5, 9, 8.5, 8]) {
+    for (const remH of [28, 22, 16]) {
+      const rowH = (CARD_TARGET_MM - fixed - remH) / n;
+      const pad = (rowH - rowContent(fs)) / 2 / mult;
+      if (pad >= 1) return { pad: Math.round(Math.min(3, pad) * 100) / 100, fs, remH, ok: true };
+    }
+  }
+  const rowH = (CARD_TARGET_MM - fixed - 15.2) / n;
+  const pad = Math.max(0.1, (rowH - rowContent(8)) / 2 / mult);
+  return { pad: Math.round(pad * 100) / 100, fs: 8, remH: 12, ok: false };
+}
+
+// Picks the largest text scale (up to the chosen Print Size) at which the card fits on one page.
+function cardFit(c: ResultPrintCtx): { pad: number; fs: number; remH: number; scale: number } {
+  const wanted = (PRINT_SIZES[c.data.printSize] || PRINT_SIZES.m).mult;
+  let last = cardDensity(c, 0.7);
+  for (let sc = wanted; sc >= 0.7; sc = Math.round((sc - 0.05) * 100) / 100) {
+    const d = cardDensity(c, sc);
+    if (d.ok) return { ...d, scale: sc };
+    last = d;
+  }
+  return { ...last, scale: 0.7 };
+}
+
 export function buildReportCardsHTML(c: ResultPrintCtx): string {
   const { asmt, data, ranked } = c;
   const passPct = Number(asmt.passPercent) || 40;
   const total = ranked.length;
+  const dens = cardFit(c);
+  const cardVars = `--mult:${dens.scale};--rc-pad:${dens.pad}mm;--rc-fs:${dens.fs}pt;--rc-remh:${dens.remH}mm`;
 
   return ranked
     .map(item => {
@@ -301,7 +339,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx): string {
       }
 
       const rankSuffix = c.style === 'a' && hasMarks(r) ? ` <small>of ${total}</small>` : '';
-      return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card">
+      return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card" style="${cardVars}">
         <div class="ps2-cardframe">
           ${headerHTML(c, 'Student Report Card')}
           ${idBlock}
