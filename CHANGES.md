@@ -19,3 +19,10 @@
 
 ## Not included (as requested)
 Browser Back-button support and the "Close App" action.
+
+## Print designs for results (Class Result Sheet, Report Cards, Merit List)
+- Two designs, chosen with checkboxes in **Results → Print Options**: **A – Colour** (green/yellow, medals, progress bars) and **B – Black & White** (serif, ruled lines, ★ top 3, white-on-black FAIL tag). The choice is remembered on the device.
+- New file `src/utils/resultPrint.ts` builds the HTML; styles are at the end of `src/index.css` (`.ps2-*`).
+- Failed marks (below the assessment pass %) are red in A and underlined in B.
+- "Page X of Y" prints in the page margin (Chrome/Edge 131+; older browsers just omit it).
+- Fixed `ordinal()` in `helpers.ts`: it returned blank for ranks 4 and above.
