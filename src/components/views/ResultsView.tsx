@@ -8,7 +8,8 @@ import {
   newAssessSubId,
   ordinal,
   getSortedStudents,
-  esc
+  esc,
+  getNameColWidth,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
@@ -490,12 +491,11 @@ export const ResultsView: React.FC = () => {
     };
   });
 
-  // Dynamic Name column width: fits the longest student name in the active class with 90px min
-  const nameColWidth = useMemo(() => {
-    if (!ranked.length) return 90;
-    const maxLen = Math.max(...ranked.map(item => (item.s.name || "").trim().length), 4);
-    return Math.min(230, Math.max(90, Math.ceil(maxLen * 8.2 + 20)));
-  }, [ranked]);
+  // Snug Name column: exact width of the longest student name (and the Average/Highest/Lowest labels)
+  const nameColWidth = useMemo(
+    () => getNameColWidth(ranked.map(item => item.s.name || ""), ["Average →", "Highest →", "Lowest →"]),
+    [ranked]
+  );
 
   const otherAsmts = data.assessments.filter(a => a.id !== activeAsmt.id);
 

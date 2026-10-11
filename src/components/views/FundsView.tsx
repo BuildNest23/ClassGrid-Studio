@@ -10,7 +10,8 @@ import {
   todayISO,
   prettyShortDate,
   getSortedStudents,
-  esc
+  esc,
+  getNameColWidth,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
@@ -46,12 +47,11 @@ export const FundsView: React.FC = () => {
   const activeFund = data.funds.find(f => f.id === activeFundId);
   const sortedStudents = getSortedStudents(data.students);
 
-  // Dynamic Name column width: fits the longest student name in the active class with 90px min
-  const nameColWidth = useMemo(() => {
-    if (!sortedStudents.length) return 90;
-    const maxLen = Math.max(...sortedStudents.map(s => (s.name || "").trim().length), 4);
-    return Math.min(230, Math.max(90, Math.ceil(maxLen * 8.2 + 20)));
-  }, [sortedStudents]);
+  // Snug Name column: exact width of the longest student name in the active class
+  const nameColWidth = useMemo(
+    () => getNameColWidth(sortedStudents.map(s => s.name || "")),
+    [sortedStudents]
+  );
 
   // 1. FUND LIST VIEW
   if (!activeFund) {
