@@ -151,3 +151,31 @@ export const TBL_SIZES = [
   { fs: 14, pad: 9, inp: 15, label: "Large" },
   { fs: 15.5, pad: 11, inp: 16.5, label: "Extra Large" }
 ];
+
+// Exact rendered text width in pixels (offscreen canvas, created once and reused).
+let _measureCtx: CanvasRenderingContext2D | null = null;
+export const TABLE_FONT_FAMILY = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+
+export function getTextWidth(text: string, font: string = `600 12px ${TABLE_FONT_FAMILY}`): number {
+  if (!_measureCtx) {
+    const canvas = document.createElement('canvas');
+    _measureCtx = canvas.getContext('2d');
+  }
+  if (!_measureCtx) return text.length * 7.5; // safe fallback if canvas is unavailable
+  _measureCtx.font = font;
+  return _measureCtx.measureText(text).width;
+}
+
+// Snug width for the sticky Name column: longest text + 16px cell padding + 2px borders.
+export function getNameColWidth(names: string[], extraLabels: string[] = []): number {
+  const NAME_FONT = `600 12px ${TABLE_FONT_FAMILY}`;
+  const BOLD_FONT = `700 12px ${TABLE_FONT_FAMILY}`;
+  let widest = getTextWidth('Name', BOLD_FONT);
+  for (const n of names) {
+    widest = Math.max(widest, getTextWidth((n || '(no name)').trim() || '(no name)', NAME_FONT));
+  }
+  for (const l of extraLabels) {
+    widest = Math.max(widest, getTextWidth(l, BOLD_FONT));
+  }
+  return Math.min(230, Math.ceil(widest + 18));
+}
