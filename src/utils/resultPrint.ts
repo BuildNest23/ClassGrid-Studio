@@ -12,6 +12,24 @@ export function loadPrintStyle(): ResultPrintStyle {
   }
 }
 
+export const PRINT_FOOTER_KEY = 'classroomResultPrintFooter';
+
+export function loadPrintFooter(): string {
+  try {
+    return localStorage.getItem(PRINT_FOOTER_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function savePrintFooter(text: string) {
+  try {
+    localStorage.setItem(PRINT_FOOTER_KEY, text);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function savePrintStyle(style: ResultPrintStyle) {
   try {
     localStorage.setItem(PRINT_STYLE_KEY, style);
@@ -41,6 +59,7 @@ export interface ResultPrintCtx {
   asmt: Assessment;
   ranked: RankedItem[];
   totalMax: number;
+  footerText: string;
 }
 
 // ---------- small helpers ----------
@@ -131,11 +150,14 @@ function sigHTML(middle: string): string {
 }
 
 function footerHTML(c: ResultPrintCtx): string {
+  const text = (c.footerText || '').trim();
   const note = c.data.printNote ? esc(c.data.printNote) : '';
   if (c.style === 'a') {
-    return `<div class="ps2-foot"><span>Printed from Classroom Manager</span>${note ? `<span class="ps2-foot-chip">${note}</span>` : ''}</div>`;
+    if (!text && !note) return '';
+    return `<div class="ps2-foot">${text ? `<span>${esc(text)}</span>` : ''}${note ? `<span class="ps2-foot-chip">${note}</span>` : ''}</div>`;
   }
-  return `<div class="ps2-foot"><span>Printed from Classroom Manager</span></div>`;
+  if (!text) return '';
+  return `<div class="ps2-foot"><span>${esc(text)}</span></div>`;
 }
 
 function rankBadge(c: ResultPrintCtx, rank: number, hasData: boolean): string {
@@ -205,7 +227,7 @@ export function buildClassResultHTML(
     <table class="ps2-table ps2-res">
       <thead><tr>
         <th style="width:6%">Roll</th>
-        <th style="width:${layout.namePct}%">Name</th>
+        <th class="name" style="width:${layout.namePct}%">Name</th>
         ${headCells}
         <th style="width:7%">Total</th>
         <th style="width:7%">%</th>
@@ -356,8 +378,8 @@ export function buildMeritListHTML(c: ResultPrintCtx): string {
       <thead><tr>
         <th style="width:9%">Rank</th>
         <th style="width:8%">Roll</th>
-        <th>Name</th>
-        <th>Father Name</th>
+        <th class="name">Name</th>
+        <th class="name">Father Name</th>
         <th style="width:9%">Total</th>
         <th style="width:${c.style === 'a' ? 15 : 9}%">%</th>
         <th style="width:11%">Result</th>
