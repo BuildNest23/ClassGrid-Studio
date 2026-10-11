@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Classroom Manager</title>
+    <link rel="manifest" href="%BASE_URL%manifest.json" />
+    <meta name="theme-color" content="#991B1B" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%icons/favicon.svg" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ClassGrid" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="description" content="Offline-first classroom management suite for attendance, assessments, grading, and fund tracking in a Crimson & Ruby academic theme." />
+    <meta property="og:title" content="Classroom Manager" />
+    <meta property="og:description" content="Offline-first classroom management suite for attendance, assessments, grading, and fund tracking in a Crimson & Ruby academic theme." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function(){
+        try {
+          var d = localStorage.getItem("classroomDark") === "1";
+          if (d) document.documentElement.classList.add("dark", "dark-preload");
+          else document.documentElement.classList.remove("dark", "dark-preload");
+        } catch(e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

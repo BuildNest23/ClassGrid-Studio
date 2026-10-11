@@ -1,0 +1,8 @@
+{
+  "name": "Remix Classroom Manager",
+  "description": "Offline-first classroom management suite for attendance, assessments, grading, and fund tracking in a Crimson \u0026 Ruby academic theme.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
