@@ -822,7 +822,7 @@ export const ResultsView: React.FC = () => {
           </div>
         ) : (
           <div className="res-wrap overflow-x-auto border border-[#E7E5E4] dark:border-[#44403C] rounded-xl max-h-[75vh]">
-            <table className="w-full text-xs text-center border-collapse">
+            <table className="res-table w-full text-xs text-center border-separate border-spacing-0">
               <thead className="sticky top-0 z-20 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4]">
                 <tr>
                   <th className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
@@ -996,42 +996,42 @@ export const ResultsView: React.FC = () => {
                   );
                 })}
               </tbody>
-              <tfoot className="sticky bottom-0 z-10 bg-[#FAFAF9] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4] font-bold border-t-2 border-t-[#D6D3D1] dark:border-t-[#44403C] shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
-                <tr>
-                  <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
-                  <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-right pr-2 bg-[#FAFAF9] dark:bg-[#292524]">
+              <tfoot className="sticky bottom-0 z-20 bg-white dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] font-bold shadow-[0_-3px_10px_rgba(0,0,0,0.12)]">
+                <tr className="bg-white dark:bg-[#1C1917]">
+                  <td className="sc1 p-2 bg-white dark:bg-[#1C1917]"></td>
+                  <td className="sc2 p-2 text-right pr-2 bg-white dark:bg-[#1C1917]">
                     Average →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
+                    <td key={st.subId} className="p-2 bg-white dark:bg-[#1C1917]">
                       {st.avg}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
+                  <td colSpan={4} className="p-2 bg-white dark:bg-[#1C1917]"></td>
                 </tr>
-                <tr>
-                  <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
-                  <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-right pr-2 bg-[#FAFAF9] dark:bg-[#292524]">
+                <tr className="bg-white dark:bg-[#1C1917]">
+                  <td className="sc1 p-2 bg-white dark:bg-[#1C1917]"></td>
+                  <td className="sc2 p-2 text-right pr-2 bg-white dark:bg-[#1C1917]">
                     Highest →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
+                    <td key={st.subId} className="p-2 bg-white dark:bg-[#1C1917]">
                       {st.cnt ? st.hi : "—"}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
+                  <td colSpan={4} className="p-2 bg-white dark:bg-[#1C1917]"></td>
                 </tr>
-                <tr>
-                  <td className="sc1 p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
-                  <td className="sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-right pr-2 bg-[#FAFAF9] dark:bg-[#292524]">
+                <tr className="bg-white dark:bg-[#1C1917]">
+                  <td className="sc1 p-2 bg-white dark:bg-[#1C1917]"></td>
+                  <td className="sc2 p-2 text-right pr-2 bg-white dark:bg-[#1C1917]">
                     Lowest →
                   </td>
                   {subjectStats.map(st => (
-                    <td key={st.subId} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]">
+                    <td key={st.subId} className="p-2 bg-white dark:bg-[#1C1917]">
                       {st.cnt ? st.lo : "—"}
                     </td>
                   ))}
-                  <td colSpan={4} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524]"></td>
+                  <td colSpan={4} className="p-2 bg-white dark:bg-[#1C1917]"></td>
                 </tr>
               </tfoot>
             </table>

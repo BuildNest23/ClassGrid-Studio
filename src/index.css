@@ -566,23 +566,85 @@ thead th.sc1, thead th.sc2 {
   z-index: 25;
 }
 
-/* Footer sticky stacking: above tbody rows so names scroll underneath */
+/* Results Table Border Separation to prevent sticky row detachment */
+.res-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.res-table th,
+.res-table td {
+  border-right: 1px solid #E7E5E4;
+  border-bottom: 1px solid #E7E5E4;
+}
+
+html.dark .res-table th,
+html.dark .res-table td {
+  border-right-color: #44403C;
+  border-bottom-color: #44403C;
+}
+
+.res-table th:first-child,
+.res-table td:first-child {
+  border-left: 1px solid #E7E5E4;
+}
+
+html.dark .res-table th:first-child,
+html.dark .res-table td:first-child {
+  border-left-color: #44403C;
+}
+
+.res-table thead tr:first-child th {
+  border-top: 1px solid #E7E5E4;
+}
+
+html.dark .res-table thead tr:first-child th {
+  border-top-color: #44403C;
+}
+
+/* Footer sticky stacking: solid pure white matching names */
 tfoot {
   position: sticky;
   bottom: 0;
-  z-index: 10;
+  z-index: 20;
+  background-color: #FFFFFF !important;
+}
+
+html.dark tfoot {
+  background-color: #1C1917 !important;
+}
+
+tfoot tr {
+  background-color: #FFFFFF !important;
+}
+
+html.dark tfoot tr {
+  background-color: #1C1917 !important;
 }
 
 tfoot td {
-  background-color: #FAFAF9;
+  background-color: #FFFFFF !important;
 }
 
 html.dark tfoot td {
-  background-color: #292524;
+  background-color: #1C1917 !important;
+}
+
+tfoot tr:first-child td {
+  border-top: 2px solid #D6D3D1 !important;
+}
+
+html.dark tfoot tr:first-child td {
+  border-top: 2px solid #44403C !important;
 }
 
 tfoot td.sc1, tfoot td.sc2 {
-  z-index: 15;
+  z-index: 25;
+  background-color: #FFFFFF !important;
+}
+
+html.dark tfoot td.sc1, html.dark tfoot td.sc2 {
+  background-color: #1C1917 !important;
 }
 
 /* Print Styles */
