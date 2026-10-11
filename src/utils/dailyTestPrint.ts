@@ -246,6 +246,9 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
   // PAGE 2: DAILY CLASS SUMMARY (FINAL SHEET)
   // -------------------------------------------------------------
   let page2RowsHTML = '';
+  // Month-end box: Average Class Score = average of all marks scored by students who took the tests.
+  let monthMarkSum = 0;
+  let monthMarkCount = 0;
   for (let d = 1; d <= 31; d++) {
     const isOff = d > daysInMonth;
     const dateStr = `${String(d).padStart(2, '0')}/${String(monthNum).padStart(2, '0')}`;
@@ -280,6 +283,8 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
           } else if (typeof val === 'number') {
             presCount++;
             markSum += val;
+            monthMarkSum += val;
+            monthMarkCount++;
             if (val < 5) below5Count++;
           }
         });
@@ -309,6 +314,8 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
       </tr>
     `;
   }
+
+  const monthAvgText = monthMarkCount > 0 ? (monthMarkSum / monthMarkCount).toFixed(1) : '';
 
   const page2HTML = `
     <div class="dt-sheet page-2">
@@ -346,7 +353,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
           <div class="dt-summary-fields">
             <div class="dt-summary-row">
               <div class="dt-sig-line"><span>Total Working Days:</span><span class="line-fill"></span></div>
-              <div class="dt-sig-line"><span>Average Class Score (Out of 10):</span><span class="line-fill"></span></div>
+              <div class="dt-sig-line"><span>Average Class Score (Out of 10):</span><span class="line-fill dt-fill-val">${monthAvgText}</span></div>
             </div>
             <div class="dt-sig-line"><span>Topics Covered This Month:</span><span class="line-fill"></span></div>
             <div class="dt-sig-line"><span>Major Learning Gaps:</span><span class="line-fill"></span></div>
@@ -758,6 +765,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
       }
 
       .dt-sig-line { display: flex !important; align-items: flex-end !important; gap: 1mm !important; white-space: nowrap !important; font-size: 7pt !important; font-weight: 600 !important; }
+      .dt-fill-val { text-align: center !important; font-weight: 900 !important; font-size: 8.5pt !important; color: #111827 !important; line-height: 1 !important; }
       .line-fill { flex: 1 !important; border-bottom: 0.8px solid #6B7280 !important; min-height: 3.2mm !important; }
 
       .dt-quote-mark { font-size: 20pt !important; line-height: 0.8 !important; font-weight: 900 !important; color: #D97706 !important; margin-bottom: 0.5mm !important; }
