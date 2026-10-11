@@ -630,7 +630,7 @@ export const ResultsView: React.FC = () => {
       return `<tr class="${cls}">
         <td class="center font-mono">${esc(s.rollNo || "—")}</td>
         <td class="name">${esc(s.name || "—")}</td>
-        <td class="center">${esc(s.fatherName || "—")}</td>
+        <td class="name">${esc(s.fatherName || "—")}</td>
         <td class="center font-bold">${r.total}</td>
         <td class="center">${r.maxTotal > 0 ? r.pct + "%" : "—"}</td>
         <td class="center font-bold" style="color:${r.passed ? '#166534' : '#991B1B'}">${r.passed ? 'PASS' : 'FAIL'}${r.manual && !r.computedPass ? ' ✱' : ''}</td>
@@ -638,15 +638,14 @@ export const ResultsView: React.FC = () => {
       </tr>`;
     }).join("");
 
-    // Father Name is snug; Name takes all the remaining space; Rank is the last column.
-    const fatherPct = getPrintNameColPct(ranked.map(item => item.s.fatherName || ""), 9.5, data.printSize, data.forceOrientation, "Father Name");
+    // Name and Father Name have no fixed width, so they share the remaining space equally. Rank is the last column.
     const fullPrintHTML = `<div class="print-sheet">
       ${buildPrintHeaderHTML(activeAsmt.name + " — Merit List", "Ranked by total marks")}
       <table class="merit-table">
         <thead><tr>
           <th style="width:8%">Roll</th>
           <th>Name</th>
-          <th style="width:${fatherPct}%">Father Name</th>
+          <th>Father Name</th>
           <th style="width:10%">Total</th>
           <th style="width:9%">%</th>
           <th style="width:10%">Result</th>
