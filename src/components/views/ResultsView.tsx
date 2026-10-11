@@ -11,6 +11,7 @@ import {
   esc,
   getNameColWidth,
   getPrintNameColPct,
+  planResultPrintLayout,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
@@ -506,7 +507,14 @@ export const ResultsView: React.FC = () => {
       toast("Add subjects first.", "error");
       return;
     }
-    const headCells = activeAsmt.subjects.map(sub => `<th>${esc(sub.name)}<br><span style="font-size:6pt;font-weight:600">(${sub.max})</span></th>`).join("");
+    // Fit every subject heading: smaller heading font first, then landscape if needed
+    const layout = planResultPrintLayout(
+      ranked.map(item => item.s.name || ""),
+      activeAsmt.subjects.map(sub => sub.name),
+      data.printSize,
+      data.forceOrientation
+    );
+    const headCells = activeAsmt.subjects.map(sub => `<th style="font-size:calc(${layout.headFontPt}pt * var(--mult, 1));overflow-wrap:anywhere">${esc(sub.name)}<br><span style="font-size:6pt;font-weight:600">(${sub.max})</span></th>`).join("");
     const rows = ranked.map(item => {
       const { s, r } = item;
       const cls = (!r.passed && r.maxTotal > 0) ? "row-fail" : "";
@@ -527,24 +535,24 @@ export const ResultsView: React.FC = () => {
       </tr>`;
     }).join("");
 
-    const namePct = getPrintNameColPct(ranked.map(item => item.s.name || ""), 8, data.printSize, data.forceOrientation);
+    const namePct = layout.namePct;
     const fullPrintHTML = `<div class="print-sheet">
       ${buildPrintHeaderHTML(activeAsmt.name + " — Class Result Sheet", `Pass mark: ${activeAsmt.passPercent}% • Total max: ${totalMax}`)}
       <table class="res-print">
         <thead><tr>
-          <th style="width:8%">Roll</th>
+          <th style="width:6%">Roll</th>
           <th style="width:${namePct}%">Name</th>
           ${headCells}
-          <th style="width:9%">Total</th>
-          <th style="width:8%">%</th>
-          <th style="width:10%">Result</th>
-          <th style="width:7%">Rank</th>
+          <th style="width:7%">Total</th>
+          <th style="width:7%">%</th>
+          <th style="width:8%">Result</th>
+          <th style="width:6%">Rank</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
 
-    triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    triggerPrint(fullPrintHTML, layout.orientation, data.printSize, data.forceOrientation);
   };
 
   const handlePrintReportCards = () => {
