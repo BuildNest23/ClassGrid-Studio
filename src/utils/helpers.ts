@@ -186,12 +186,13 @@ export function getPrintNameColPct(
   names: string[],
   fontPt: number,
   printSize: PrintSizeKey = 'm',
-  forceOrientation: string = ''
+  forceOrientation: string = '',
+  headerLabel: string = 'Name'
 ): number {
   const mult = (PRINT_SIZES[printSize] || PRINT_SIZES.m).mult;
   const fontPx = fontPt * mult * 96 / 72;
   const family = TABLE_FONT_FAMILY;
-  let widestPx = getTextWidth('Name', `700 ${fontPx}px ${family}`);
+  let widestPx = getTextWidth(headerLabel, `700 ${fontPx}px ${family}`);
   for (const n of names) {
     const t = (n || '—').trim() || '—';
     widestPx = Math.max(widestPx, getTextWidth(t, `400 ${fontPx}px ${family}`));
