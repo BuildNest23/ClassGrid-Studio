@@ -266,6 +266,8 @@ export function generateSampleClassData(): AppData {
 
   return {
     schoolName: "Govt. High School Model Town, Lahore",
+    emisCode: "",
+    section: "A",
     academicYear: "2026-2027",
     className: "Grade 10-A",
     inchargeName: "Mr. Tariq Mehmood",

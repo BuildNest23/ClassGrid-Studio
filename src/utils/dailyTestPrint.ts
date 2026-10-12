@@ -2,25 +2,38 @@ import { AppData, Student } from '../types';
 import { esc, getSortedStudents } from './helpers';
 import { DEPT_LOGO_DATA_URI } from './deptLogo';
 
-interface PrintOptions {
-  monthKey: string; // "YYYY-MM"
-  isBlank?: boolean;
+export interface DailyTestHeaderOptions {
+  showSchool: boolean;
+  showEmis: boolean;
+  showClass: boolean;
+  showSection: boolean;
+  showMonth: boolean;
 }
 
+export interface PrintOptions {
+  monthKey: string; // "YYYY-MM"
+  isBlank?: boolean;
+  blankWithNames?: boolean; // blank register only: print student names (no marks)
+  header?: Partial<DailyTestHeaderOptions>; // which header fields to fill in (default: none, left for handwriting)
+}
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptions): string {
-  const { monthKey, isBlank = false } = options;
+  const { monthKey, isBlank = false, blankWithNames = false } = options;
+  const hdr = options.header || {};
   const [yearStr, monthStr] = monthKey.split('-');
   const year = parseInt(yearStr, 10) || new Date().getFullYear();
   const monthNum = parseInt(monthStr, 10) || (new Date().getMonth() + 1);
   const monthIndex = monthNum - 1;
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
-  const students = isBlank ? [] : getSortedStudents(data.students);
+  const students = (isBlank && !blankWithNames) ? [] : getSortedStudents(data.students);
 
   // Fixed 20 students per sheet
   const CHUNK_SIZE = 20;
   const studentChunks: Student[][] = [];
-  if (isBlank || students.length === 0) {
+  if (students.length === 0) {
     studentChunks.push([]);
   } else {
     for (let i = 0; i < students.length; i += CHUNK_SIZE) {
@@ -28,9 +41,12 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
     }
   }
 
-  // Header: School Name, EMIS Code, Class, Section and Month are all left blank for handwriting.
-  const classText = '';
-  const monthText = '';
+  // Header fields are only filled in when ticked; otherwise left blank for handwriting.
+  const schoolText = hdr.showSchool ? esc(data.schoolName || '') : '';
+  const emisText = hdr.showEmis ? esc(data.emisCode || '') : '';
+  const classText = hdr.showClass ? esc(data.className || '') : '';
+  const sectionText = hdr.showSection ? esc(data.section || '') : '';
+  const monthText = hdr.showMonth ? MONTH_NAMES[monthIndex] : '';
 
   const buildHeaderStripHTML = (pageLabel: string, pageBadgeHTML: string) => `
     <div class="dt-header-wrap">
@@ -49,11 +65,11 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
         <div class="dt-fields-bar">
           <div class="dt-field dt-grow">
             <span class="dt-label">School Name:</span>
-            <span class="dt-line school-line"></span>
+            <span class="dt-line school-line">${schoolText}</span>
           </div>
           <div class="dt-field">
             <span class="dt-label">EMIS Code:</span>
-            <span class="dt-line emis-line"></span>
+            <span class="dt-line emis-line">${emisText}</span>
           </div>
           <div class="dt-field">
             <span class="dt-label">Class:</span>
@@ -61,7 +77,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
           </div>
           <div class="dt-field">
             <span class="dt-label">Section:</span>
-            <span class="dt-line sec-line"></span>
+            <span class="dt-line sec-line">${sectionText}</span>
           </div>
           <div class="dt-field">
             <span class="dt-label">Month:</span>
@@ -97,7 +113,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
     for (let r = 0; r < CHUNK_SIZE; r++) {
       const student: Student | undefined = chunk[r];
       const srNo = chunkIdx * CHUNK_SIZE + r + 1;
-      const name = student && !isBlank ? esc(student.name) : '';
+      const name = student ? esc(student.name) : '';
       const rollNo = student && !isBlank ? esc(student.rollNo) : '';
 
       let sumMarks = 0;

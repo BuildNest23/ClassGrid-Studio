@@ -10,6 +10,8 @@ const isObj = (v: unknown): v is Record<string, any> =>
 export function makeBaseData(): AppData {
   return {
     schoolName: "Your School Name",
+    emisCode: "",
+    section: "",
     academicYear: "",
     className: "",
     inchargeName: "",
@@ -136,6 +138,8 @@ export function normalizeData(raw: unknown): AppData {
 
   return {
     schoolName: src.schoolName ?? base.schoolName,
+    emisCode: typeof src.emisCode === "string" ? src.emisCode : "",
+    section: typeof src.section === "string" ? src.section : "",
     academicYear: src.academicYear ?? base.academicYear,
     className: src.className ?? base.className,
     inchargeName: src.inchargeName ?? base.inchargeName,
