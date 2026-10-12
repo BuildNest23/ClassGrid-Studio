@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Student } from '../../types';
 import { newId, getSortedStudents } from '../../utils/helpers';
+import { HowItWorks } from '../HowItWorks';
 import {
   UserPlus,
   Edit2,
@@ -242,6 +243,18 @@ export const StudentsView: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <HowItWorks
+        id="students"
+        title="How to add students"
+        steps={[
+          <>Fill in the form: <b>Student Name</b> is required. Roll No is filled in for you if you leave it. Everything else is optional.</>,
+          <>Tap <b>Save Student</b>. The student then appears in every other screen: Attendance, Daily Test, Results and Funds.</>,
+          <>Use the <b>arrows</b> to move a student up or down, the <b>pencil</b> to edit, or the <b>bin</b> to remove.</>,
+          <>Use the search box to find a student by name, father's name, roll number, admission number or phone.</>
+        ]}
+        note="Moving or removing a student renumbers the roll numbers. Removing a student also deletes all their attendance, marks and fund records, so you will be asked to confirm."
+      />
+
       {/* Notice if class is not configured */}
       {!data.className && (
         <div className="p-3 bg-[#FBF0D9] dark:bg-[#3A2E14] border border-[#B4791F] rounded-xl text-[#7A5515] dark:text-[#F8E0A0] text-xs font-semibold flex items-center gap-2">
