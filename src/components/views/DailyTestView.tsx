@@ -11,7 +11,7 @@ import {
   gridTabIndex,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
-import { generateDailyTestRegisterHTML } from '../../utils/dailyTestPrint';
+import { generateDailyTestRegisterHTML, DailyTestHeaderOptions } from '../../utils/dailyTestPrint';
 import {
   Calendar,
   ChevronLeft,
@@ -27,6 +27,29 @@ import {
   Sparkles
 } from 'lucide-react';
 
+const PRINT_OPTS_KEY = 'classgrid_dt_print_opts';
+
+interface DtPrintOpts extends DailyTestHeaderOptions {
+  blankWithNames: boolean;
+}
+
+const DEFAULT_PRINT_OPTS: DtPrintOpts = {
+  blankWithNames: false,
+  showSchool: false,
+  showEmis: false,
+  showClass: false,
+  showSection: false,
+  showMonth: false
+};
+
+function loadPrintOpts(): DtPrintOpts {
+  try {
+    const raw = localStorage.getItem(PRINT_OPTS_KEY);
+    if (raw) return { ...DEFAULT_PRINT_OPTS, ...JSON.parse(raw) };
+  } catch { /* ignore */ }
+  return DEFAULT_PRINT_OPTS;
+}
+
 export const DailyTestView: React.FC = () => {
   const {
     data,
@@ -40,6 +63,23 @@ export const DailyTestView: React.FC = () => {
 
   const [selectedDate, setSelectedDate] = useState<string>(todayKey());
   const selectedMonth = selectedDate.slice(0, 7); // "YYYY-MM"
+
+  // Print options (apply to both the filled and the blank register); remembered on this device
+  const [printOpts, setPrintOpts] = useState<DtPrintOpts>(loadPrintOpts);
+  const setOpt = (k: keyof DtPrintOpts, v: boolean) => {
+    setPrintOpts(prev => {
+      const next = { ...prev, [k]: v };
+      try { localStorage.setItem(PRINT_OPTS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const headerOpts: DailyTestHeaderOptions = {
+    showSchool: printOpts.showSchool,
+    showEmis: printOpts.showEmis,
+    showClass: printOpts.showClass,
+    showSection: printOpts.showSection,
+    showMonth: printOpts.showMonth
+  };
 
   const sortedStudents = useMemo(() => getSortedStudents(data.students), [data.students]);
 
@@ -263,7 +303,8 @@ export const DailyTestView: React.FC = () => {
     }
     const html = generateDailyTestRegisterHTML(data, {
       monthKey: selectedMonth,
-      isBlank: false
+      isBlank: false,
+      header: headerOpts
     });
     triggerPrint(html, 'landscape', data.printSize, data.forceOrientation);
   };
@@ -272,7 +313,9 @@ export const DailyTestView: React.FC = () => {
   const handlePrintBlankRegister = () => {
     const html = generateDailyTestRegisterHTML(data, {
       monthKey: selectedMonth,
-      isBlank: true
+      isBlank: true,
+      blankWithNames: printOpts.blankWithNames && sortedStudents.length > 0,
+      header: headerOpts
     });
     triggerPrint(html, 'landscape', data.printSize, data.forceOrientation);
   };
@@ -496,6 +539,48 @@ export const DailyTestView: React.FC = () => {
           Print Blank Register
         </ActionButton>
       </ActionGrid>
+
+      {/* Print Options: apply to both Print Register and Print Blank Register */}
+      <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-4 shadow-xs">
+        <h3 className="text-sm font-black text-stone-900 dark:text-stone-100">Register Print Options</h3>
+        <p className="mt-0.5 text-xs font-semibold text-stone-500 dark:text-stone-400">
+          Tick a box to have it written on the form. Unticked fields are left blank for handwriting.
+        </p>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
+          {([
+            ['showSchool', 'School Name'],
+            ['showEmis', 'EMIS Code'],
+            ['showClass', 'Class'],
+            ['showSection', 'Section'],
+            ['showMonth', 'Month']
+          ] as [keyof DtPrintOpts, string][]).map(([k, label]) => (
+            <label key={k} className="flex items-center gap-2 text-sm font-bold text-stone-700 dark:text-stone-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={printOpts[k]}
+                onChange={e => setOpt(k, e.target.checked)}
+                className="w-4 h-4 accent-red-800 cursor-pointer"
+              />
+              {label}
+              {k === 'showEmis' && !data.emisCode && (
+                <span className="text-[10px] font-semibold text-stone-400">(set in Settings)</span>
+              )}
+              {k === 'showSection' && !data.section && (
+                <span className="text-[10px] font-semibold text-stone-400">(set in Settings)</span>
+              )}
+            </label>
+          ))}
+          <label className="col-span-2 sm:col-span-3 flex items-center gap-2 text-sm font-bold text-stone-700 dark:text-stone-200 cursor-pointer pt-2 border-t border-stone-100 dark:border-stone-800">
+            <input
+              type="checkbox"
+              checked={printOpts.blankWithNames}
+              onChange={e => setOpt('blankWithNames', e.target.checked)}
+              className="w-4 h-4 accent-red-800 cursor-pointer"
+            />
+            Blank Register: include student names only (no marks)
+          </label>
+        </div>
+      </div>
 
       {/* Student Marks Entry Table */}
       <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-xs overflow-hidden">

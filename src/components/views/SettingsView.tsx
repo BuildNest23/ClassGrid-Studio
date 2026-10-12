@@ -36,6 +36,8 @@ export const SettingsView: React.FC = () => {
   const [inchargeName, setInchargeName] = useState(data.inchargeName);
   const [schoolName, setSchoolName] = useState(data.schoolName);
   const [academicYear, setAcademicYear] = useState(data.academicYear);
+  const [emisCode, setEmisCode] = useState(data.emisCode || '');
+  const [section, setSection] = useState(data.section || '');
   const [printNote, setPrintNote] = useState(data.printNote);
 
   // Keep the form in sync when data changes from outside (Undo / Redo / Import)
@@ -44,8 +46,10 @@ export const SettingsView: React.FC = () => {
     setInchargeName(data.inchargeName);
     setSchoolName(data.schoolName);
     setAcademicYear(data.academicYear);
+    setEmisCode(data.emisCode || '');
+    setSection(data.section || '');
     setPrintNote(data.printNote);
-  }, [data.className, data.inchargeName, data.schoolName, data.academicYear, data.printNote]);
+  }, [data.className, data.inchargeName, data.schoolName, data.academicYear, data.printNote, data.emisCode, data.section]);
 
   const handleSaveInfo = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +59,8 @@ export const SettingsView: React.FC = () => {
       inchargeName: inchargeName.trim(),
       schoolName: schoolName.trim() || "Your School Name",
       academicYear: academicYear.trim(),
+      emisCode: emisCode.trim(),
+      section: section.trim(),
       printNote: printNote.trim()
     }));
     toast("Classroom setup saved.", "success");
@@ -276,6 +282,30 @@ export const SettingsView: React.FC = () => {
                 value={academicYear}
                 placeholder="e.g. 2026-27"
                 onChange={e => setAcademicYear(e.target.value)}
+                className="w-full p-2.5 text-xs rounded-lg border border-[#DAD3C3] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] text-inherit"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[#6E6656] dark:text-[#A79B85] uppercase mb-1">
+                EMIS Code (Optional)
+              </label>
+              <input
+                type="text"
+                value={emisCode}
+                placeholder="e.g. 35210123"
+                onChange={e => setEmisCode(e.target.value)}
+                className="w-full p-2.5 text-xs rounded-lg border border-[#DAD3C3] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] text-inherit"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-[#6E6656] dark:text-[#A79B85] uppercase mb-1">
+                Section (Optional)
+              </label>
+              <input
+                type="text"
+                value={section}
+                placeholder="e.g. A"
+                onChange={e => setSection(e.target.value)}
                 className="w-full p-2.5 text-xs rounded-lg border border-[#DAD3C3] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] text-inherit"
               />
             </div>
