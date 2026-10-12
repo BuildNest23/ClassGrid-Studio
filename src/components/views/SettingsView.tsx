@@ -22,6 +22,8 @@ import {
 import { generateSampleClassData } from '../../utils/sampleData';
 import { exportFileBlob } from '../../utils/nativeFileExport';
 import { Capacitor } from '@capacitor/core';
+import { getStorage } from '../../storage';
+import { getLastAutoBackupTimestamp } from '../../storage/autoBackup';
 
 const LAST_BACKUP_KEY = 'classgrid_last_backup';
 const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
@@ -64,6 +66,22 @@ export const SettingsView: React.FC = () => {
   const [schoolName, setSchoolName] = useState(data.schoolName);
   const [academicYear, setAcademicYear] = useState(data.academicYear);
   const [lastBackup, setLastBackup] = useState<number | null>(readLastBackup);
+  const [autoBackupTimestamp] = useState<number | null>(() => getLastAutoBackupTimestamp());
+  const [storageStatus, setStorageStatus] = useState<{
+    engine: string;
+    isNative: boolean;
+    details: string;
+    fallbackActive?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    getStorage().then(s => {
+      if (mounted) setStorageStatus(s.getStatus());
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const usedChars = React.useMemo(() => readStorageChars(), [data]);
   const usedPct = Math.min(100, Math.round((usedChars / STORAGE_LIMIT_CHARS) * 100));
@@ -72,6 +90,7 @@ export const SettingsView: React.FC = () => {
     : `${(usedChars / (1024 * 1024)).toFixed(1)} MB`;
   const logoKB = Math.round((data.schoolLogo || '').length / 1024);
   const daysSinceBackup = lastBackup ? Math.floor((Date.now() - lastBackup) / 86400000) : null;
+  const daysSinceAutoBackup = autoBackupTimestamp ? Math.floor((Date.now() - autoBackupTimestamp) / 86400000) : null;
   const backupOld = daysSinceBackup === null || daysSinceBackup > 30;
   const barColor = usedPct >= 80 ? 'bg-red-600' : usedPct >= 50 ? 'bg-amber-500' : 'bg-emerald-600';
   const [emisCode, setEmisCode] = useState(data.emisCode || '');
@@ -526,7 +545,17 @@ export const SettingsView: React.FC = () => {
         </p>
 
         {/* Storage meter + backup status */}
-        <div className="rounded-xl border border-[#E5DFD0] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] p-3 space-y-1.5">
+        <div className="rounded-xl border border-[#E5DFD0] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] p-3 space-y-2">
+          {storageStatus && (
+            <div className="flex items-center justify-between text-xs pb-1.5 border-b border-[#E5DFD0] dark:border-[#3A3527]">
+              <span className="text-[#6E6656] dark:text-[#A79B85] font-semibold">Database Engine</span>
+              <span className="font-bold text-[#232019] dark:text-[#EFE9DD] flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${storageStatus.engine === 'sqlite' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                {storageStatus.details}
+              </span>
+            </div>
+          )}
+
           <div className="flex justify-between items-baseline text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
             <span>Storage used</span>
             <span>{usedLabel} of about 5 MB ({usedPct}%)</span>
@@ -551,13 +580,22 @@ export const SettingsView: React.FC = () => {
               Storage is almost full. Export a backup now, and remove the logo if it is large.
             </p>
           )}
-          <p className={`text-[11px] font-semibold ${backupOld ? 'text-amber-800 dark:text-amber-300' : 'text-[#6E6656] dark:text-[#A79B85]'}`}>
-            {daysSinceBackup === null
-              ? 'No backup exported from this device yet. Tap Export Backup below.'
-              : daysSinceBackup === 0
-              ? 'Last backup: today'
-              : `Last backup: ${daysSinceBackup} day${daysSinceBackup === 1 ? '' : 's'} ago${backupOld ? '. Time for a new one.' : ''}`}
-          </p>
+          <div className="pt-1 space-y-1">
+            <p className={`text-[11px] font-semibold ${backupOld ? 'text-amber-800 dark:text-amber-300' : 'text-[#6E6656] dark:text-[#A79B85]'}`}>
+              {daysSinceBackup === null
+                ? 'Manual backup: No file exported yet from this device.'
+                : daysSinceBackup === 0
+                ? 'Last manual backup: today'
+                : `Last manual backup: ${daysSinceBackup} day${daysSinceBackup === 1 ? '' : 's'} ago${backupOld ? '. Time for a new one.' : ''}`}
+            </p>
+            <p className="text-[11px] font-semibold text-[#6E6656] dark:text-[#A79B85]">
+              {daysSinceAutoBackup === null
+                ? 'Last auto-backup: Scheduled on save (max once/24h to device Documents).'
+                : daysSinceAutoBackup === 0
+                ? 'Last auto-backup: today (saved to device Documents)'
+                : `Last auto-backup: ${daysSinceAutoBackup} day${daysSinceAutoBackup === 1 ? '' : 's'} ago (saved to device Documents)`}
+            </p>
+          </div>
         </div>
 
         <ActionGrid cols={2}>

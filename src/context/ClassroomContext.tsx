@@ -22,6 +22,9 @@ import {
   TBL_SIZES
 } from '../utils/helpers';
 import { normalizeData, makeBaseData } from '../utils/migrate';
+import { getStorage, isStorageFallbackActive } from '../storage';
+import { maybeTriggerAutoBackup } from '../storage/autoBackup';
+import { App as CapApp } from '@capacitor/app';
 
 const BASE_DATA: AppData = makeBaseData();
 
@@ -187,22 +190,15 @@ interface ClassroomContextType {
     total: number;
   } | null;
   buildPrintHeaderHTML: (title?: string, subline?: string) => string;
+  isHydrated: boolean;
 }
 
 const ClassroomContext = createContext<ClassroomContextType | null>(null);
 
-function loadInitialData(): AppData {
-  try {
-    const raw = localStorage.getItem("classroomData");
-    if (!raw) return makeBaseData();
-    return normalizeData(JSON.parse(raw));
-  } catch {
-    return makeBaseData();
-  }
-}
-
 export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [data, setData] = useState<AppData>(loadInitialData);
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+  const isHydratedRef = useRef<boolean>(false);
+  const [data, setData] = useState<AppData>(() => makeBaseData());
   const [activeTab, setActiveTabState] = useState<ActiveTab>(INITIAL_TAB);
   const [activeAssessmentId, setActiveAssessmentIdState] = useState<string | null>(() => {
     return localStorage.getItem("classroomActiveAssessment") || null;
@@ -265,12 +261,15 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     resolve: null
   });
 
-  // Undo / Redo Stacks
+  // Undo / Redo Stacks & Async Persistence References
   const historyStackRef = useRef<string[]>([]);
   const redoStackRef = useRef<string[]>([]);
-  const lastSavedStateRef = useRef<string>(JSON.stringify(data));
+  const lastSavedStateRef = useRef<string>(JSON.stringify(makeBaseData()));
   const isRestoringRef = useRef(false);
   const dataRef = useRef<AppData>(data);
+  const pendingSaveDataRef = useRef<AppData | null>(null);
+  const debounceTimerRef = useRef<number | null>(null);
+  const writeQueueTailRef = useRef<Promise<void>>(Promise.resolve());
   const [, setHistoryVersion] = useState(0);
   const bumpHistory = useCallback(() => setHistoryVersion(v => v + 1), []);
 
@@ -343,20 +342,145 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const cloneData = (d: AppData): AppData => JSON.parse(JSON.stringify(d));
 
+  // Drains the pending save into an ordered, serial write queue to SQLite / WebStorage
+  const flushPendingToStorage = useCallback((): Promise<void> => {
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    const toSave = pendingSaveDataRef.current;
+    if (!toSave || !isHydratedRef.current) {
+      return writeQueueTailRef.current;
+    }
+
+    pendingSaveDataRef.current = null;
+
+    writeQueueTailRef.current = writeQueueTailRef.current
+      .then(async () => {
+        const storage = await getStorage();
+        await storage.saveAppData(toSave);
+        // Automatic safety backup (max once per 24 hours, non-blocking)
+        maybeTriggerAutoBackup(toSave).catch((err) => {
+          console.warn('[ClassroomContext] Auto-backup notice:', err);
+        });
+      })
+      .catch((err) => {
+        console.error('[ClassroomContext] Storage save error:', err);
+        toast("Storage save failed. Check storage capacity.", "error");
+      });
+
+    return writeQueueTailRef.current;
+  }, [toast]);
+
+  // Debounces writes (~350ms) while guaranteeing they are committed in order
+  const schedulePersist = useCallback((dataToPersist: AppData, immediate = false) => {
+    if (!isHydratedRef.current) return;
+    pendingSaveDataRef.current = dataToPersist;
+
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+
+    if (immediate) {
+      flushPendingToStorage();
+    } else {
+      debounceTimerRef.current = window.setTimeout(() => {
+        flushPendingToStorage();
+      }, 350);
+    }
+  }, [flushPendingToStorage]);
+
+  // Flush queue on app pause / backgrounding (Android Capacitor pause, Web visibilitychange/beforeunload)
+  useEffect(() => {
+    const onFlush = () => {
+      flushPendingToStorage();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        onFlush();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('beforeunload', onFlush);
+
+    let pauseSub: any = null;
+    let appStateSub: any = null;
+    try {
+      CapApp.addListener('pause', onFlush).then(s => { pauseSub = s; }).catch(() => {});
+      CapApp.addListener('appStateChange', (state) => {
+        if (!state.isActive) {
+          onFlush();
+        }
+      }).then(s => { appStateSub = s; }).catch(() => {});
+    } catch {
+      // Non-native platform
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('beforeunload', onFlush);
+      if (pauseSub && typeof pauseSub.remove === 'function') pauseSub.remove();
+      if (appStateSub && typeof appStateSub.remove === 'function') appStateSub.remove();
+    };
+  }, [flushPendingToStorage]);
+
+  // Async Startup Hydration: loads from SQLite (on Android) or WebStorage (on Web/PWA)
+  useEffect(() => {
+    let isMounted = true;
+
+    async function initStorageAndLoad() {
+      try {
+        const storage = await getStorage();
+        const loaded = await storage.loadAppData();
+        const normalized = loaded ? normalizeData(loaded) : makeBaseData();
+
+        if (isMounted) {
+          dataRef.current = normalized;
+          lastSavedStateRef.current = JSON.stringify(normalized);
+          setData(normalized);
+          isHydratedRef.current = true;
+          setIsHydrated(true);
+
+          if (isStorageFallbackActive()) {
+            toast("SQLite storage unavailable. Using web storage fallback.", "info");
+          }
+        }
+      } catch (err) {
+        console.error('[ClassroomContext] Storage initialization error:', err);
+        if (isMounted) {
+          const fallback = makeBaseData();
+          dataRef.current = fallback;
+          lastSavedStateRef.current = JSON.stringify(fallback);
+          setData(fallback);
+          isHydratedRef.current = true;
+          setIsHydrated(true);
+          toast("Storage error on startup. Initialized with session defaults.", "error");
+        }
+      }
+    }
+
+    initStorageAndLoad();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [toast]);
+
   // Save with Undo tracking.
   // The updater receives a private deep copy, so it can never mutate the live state.
-  // All side effects (localStorage, history, flash) happen here, NOT inside a React updater.
   const saveData = useCallback((updater: AppData | ((prev: AppData) => AppData)) => {
+    if (!isHydratedRef.current) {
+      console.warn('[ClassroomContext] Ignored saveData before storage hydration completed.');
+      return;
+    }
+
     const base = cloneData(dataRef.current);
     const next = typeof updater === 'function' ? updater(base) : updater;
     const nextStr = JSON.stringify(next);
-    try {
-      localStorage.setItem("classroomData", nextStr);
-      localStorage.setItem("classroomLastSaved", String(Date.now()));
-    } catch {
-      toast("Storage quota exceeded. Remove custom logo or export backup.", "error");
-      return;
-    }
 
     if (nextStr !== lastSavedStateRef.current) {
       historyStackRef.current.push(lastSavedStateRef.current);
@@ -369,38 +493,32 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     dataRef.current = next;
     setData(next);
-  }, [toast, flashSaved, bumpHistory]);
+    schedulePersist(next, false);
+  }, [flashSaved, bumpHistory, schedulePersist]);
 
   // Quick save without creating an undo step (used while typing text).
   const quickSaveData = useCallback((updater: AppData | ((prev: AppData) => AppData)) => {
+    if (!isHydratedRef.current) return;
     const base = cloneData(dataRef.current);
     const next = typeof updater === 'function' ? updater(base) : updater;
-    try {
-      localStorage.setItem("classroomData", JSON.stringify(next));
-      localStorage.setItem("classroomLastSaved", String(Date.now()));
-    } catch {
-      // quiet error while typing; the commit on blur will report it
-    }
+
     dataRef.current = next;
     setData(next);
-  }, []);
+    schedulePersist(next, false);
+  }, [schedulePersist]);
 
   // Turns anything saved with quickSaveData into ONE proper undo step (call on blur).
   const flushSave = useCallback(() => {
     saveData(prev => prev);
-  }, [saveData]);
+    flushPendingToStorage();
+  }, [saveData, flushPendingToStorage]);
 
   const restoreState = useCallback((stateStr: string) => {
     const restored = normalizeData(JSON.parse(stateStr));
     dataRef.current = restored;
     setData(restored);
-    try {
-      localStorage.setItem("classroomData", stateStr);
-      localStorage.setItem("classroomLastSaved", String(Date.now()));
-    } catch {
-      // ignore
-    }
-  }, []);
+    schedulePersist(restored, false);
+  }, [schedulePersist]);
 
   const undo = useCallback(() => {
     if (historyStackRef.current.length === 0) {
@@ -437,14 +555,31 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const replaceAllData = useCallback((raw: unknown) => {
     const next = normalizeData(raw);
     saveData(next);
+    flushPendingToStorage();
     setActiveAssessmentId(null);
     setActiveFundId(null);
-  }, [saveData, setActiveAssessmentId, setActiveFundId]);
+  }, [saveData, flushPendingToStorage, setActiveAssessmentId, setActiveFundId]);
 
   // Full reset: wipes data AND undo history (so it truly cannot be undone).
-  const resetEverything = useCallback(() => {
-    ["classroomData", "classroomHideGS", "classroomTab", "classroomActiveAssessment", "classroomActiveFund", "classroomLastSaved"]
-      .forEach(k => localStorage.removeItem(k));
+  const resetEverything = useCallback(async () => {
+    [
+      "classroomData",
+      "classroomHideGS",
+      "classroomTab",
+      "classroomActiveAssessment",
+      "classroomActiveFund",
+      "classroomLastSaved",
+      "classroomLastAutoBackup"
+    ].forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    pendingSaveDataRef.current = null;
+
     const fresh = makeBaseData();
     const str = JSON.stringify(fresh);
     historyStackRef.current = [];
@@ -452,15 +587,20 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     lastSavedStateRef.current = str;
     dataRef.current = fresh;
     setData(fresh);
+
     try {
-      localStorage.setItem("classroomData", str);
-    } catch {
-      // ignore
+      const adapter = await getStorage();
+      await adapter.clearAll();
+      await adapter.saveAppData(fresh);
+    } catch (e) {
+      console.error('[ClassroomContext] Failed to reset storage:', e);
     }
+
     setActiveAssessmentIdState(null);
     setActiveFundIdState(null);
     bumpHistory();
-  }, [bumpHistory]);
+    toast("All records reset to fresh defaults", "info");
+  }, [bumpHistory, toast]);
 
   // Global Keyboard Shortcuts (Ctrl+Z / Ctrl+Y / Esc)
   useEffect(() => {
@@ -932,10 +1072,33 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         getFundStudentStatus,
         classFundsSummary,
         classAverageForAssessment,
-        buildPrintHeaderHTML
+        buildPrintHeaderHTML,
+        isHydrated
       }}
     >
-      {children}
+      {!isHydrated ? (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-stone-100 dark:bg-stone-950 text-stone-800 dark:text-stone-200 p-6 select-none">
+          <div
+            className="fixed top-0 left-0 right-0 z-50 bg-[#991B1B]"
+            style={{ height: 'var(--safe-top, env(safe-area-inset-top, 0px))' }}
+          />
+          <div className="w-16 h-16 rounded-2xl bg-[#991B1B] text-white flex items-center justify-center shadow-lg mb-4 text-2xl font-bold tracking-tight">
+            CG
+          </div>
+          <div className="text-xl font-bold text-stone-900 dark:text-stone-100 mb-1 font-serif-academic">
+            Classgrid
+          </div>
+          <div className="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-2 mb-2">
+            <svg className="animate-spin h-4 w-4 text-[#991B1B] dark:text-red-400" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            <span>Securing & loading records...</span>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
     </ClassroomContext.Provider>
   );
 };

@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for fixing the white camera cutout/status bar issue in the Android Capacitor APK and ensuring a persistent solid crimson red strip across the notch and camera area with crisp contrast for system indicators (WiFi, battery, clock).",
-  "updatedAt": "2026-10-12T19:29:17.563207172Z",
+  "summary": "Implementation plan to replace localStorage with SQLite persistence on Android via @capacitor-community/sqlite, while keeping standard localStorage on Web/PWA, with zero data loss, safe migration, debounced queued writes, flush-on-pause, and automated safety backups to Documents.",
+  "updatedAt": "2026-10-12T20:31:53.796386898Z",
   "requestFeedback": true,
   "userFacing": true
 }

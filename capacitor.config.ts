@@ -16,6 +16,12 @@ const config: CapacitorConfig = {
       overlaysWebView: true,
       style: 'DARK',
       backgroundColor: '#991B1B'
+    },
+    CapacitorSQLite: {
+      androidIsEncryption: false,
+      androidBiometric: {
+        biometricAuth: false,
+      }
     }
   }
 };
