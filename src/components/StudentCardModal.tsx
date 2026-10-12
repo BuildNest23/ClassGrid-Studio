@@ -6,7 +6,9 @@ import { triggerPrint } from '../utils/printEngine';
 import {
   CARD_W_PX,
   CARD_H_PX,
+  RECEIPT_PAGE_W_PX,
   buildCardPageHTML,
+  buildReceiptPageHTML,
   renderCardCanvas,
   canvasToBlob,
   downloadBlob,
@@ -34,10 +36,14 @@ interface Props {
   notice?: (studentId: string) => string;
   /** Used for file names and the dialog label, e.g. "Result" or "Fee Statement" */
   label: string;
+  /** Narrow fee receipt instead of a full A4 card: the preview shrinks to fit the receipt */
+  receipt?: boolean;
+  /** Optional controls shown between the notice and the preview */
+  options?: React.ReactNode;
 }
 
 export const StudentCardModal: React.FC<Props> = ({
-  items, studentId, onChange, onClose, buildHTML, mult, printSize, forceOrientation, notice, label
+  items, studentId, onChange, onClose, buildHTML, mult, printSize, forceOrientation, notice, label, receipt, options
 }) => {
   const { toast } = useClassroom();
   const list = items;
@@ -47,21 +53,27 @@ export const StudentCardModal: React.FC<Props> = ({
   const boxRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
   const [busy, setBusy] = useState<'' | 'img' | 'share'>('');
+  const [measuredH, setMeasuredH] = useState(560);
+  const pageW = receipt ? RECEIPT_PAGE_W_PX : CARD_W_PX;
+  const pageH = receipt ? measuredH : CARD_H_PX;
 
   const cardHTML = buildHTML(studentId);
-  const pageHTML = useMemo(() => buildCardPageHTML(cardHTML, mult), [cardHTML, mult]);
+  const pageHTML = useMemo(
+    () => (receipt ? buildReceiptPageHTML(cardHTML) : buildCardPageHTML(cardHTML, mult)),
+    [cardHTML, mult, receipt]
+  );
   const noticeText = notice ? notice(studentId) : '';
 
   // Fit the A4 preview to the width of the popup
   useEffect(() => {
     const el = boxRef.current;
     if (!el) return;
-    const fit = () => setScale(Math.min(1, el.clientWidth / CARD_W_PX));
+    const fit = () => setScale(Math.min(1, el.clientWidth / pageW));
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [pageW]);
 
   const go = useCallback(
     (delta: number) => {
@@ -89,12 +101,19 @@ export const StudentCardModal: React.FC<Props> = ({
     const doc = iframeRef.current?.contentDocument;
     if (!doc) throw new Error('not ready');
     if (doc.fonts && doc.fonts.ready) await doc.fonts.ready;
-    return renderCardCanvas(doc, 2);
+    return renderCardCanvas(doc, 2, pageW, pageH);
   };
 
   const fallbackPrint = () => {
     toast('Could not create the file on this device, opening the print dialog instead.', 'info');
     triggerPrint(cardHTML, 'portrait', printSize, forceOrientation, false);
+  };
+
+  // A receipt page is as tall as its content: measure it once the preview has loaded
+  const onFrameLoad = () => {
+    if (!receipt) return;
+    const page = iframeRef.current?.contentDocument?.querySelector('.cg-page') as HTMLElement | null;
+    if (page) setMeasuredH(Math.max(200, Math.ceil(page.scrollHeight)));
   };
 
   const handlePrint = () => {
@@ -165,6 +184,8 @@ export const StudentCardModal: React.FC<Props> = ({
           </div>
         )}
 
+        {options}
+
         {/* Card preview */}
         <div className="relative flex-1 min-h-0 bg-stone-100 dark:bg-stone-950">
           <button type="button" aria-label="Previous student" className={`${navBtn} left-2`} disabled={index === 0} onClick={() => go(-1)}>
@@ -174,19 +195,20 @@ export const StudentCardModal: React.FC<Props> = ({
             <ChevronRight className="w-5 h-5" />
           </button>
           <div className="h-full max-h-[68vh] overflow-y-auto overflow-x-hidden p-2 sm:p-3">
-            <div ref={boxRef} className="mx-auto w-full" style={{ maxWidth: CARD_W_PX }}>
+            <div ref={boxRef} className="mx-auto w-full" style={{ maxWidth: pageW }}>
               <div
                 className="bg-white shadow-md rounded-sm overflow-hidden"
-                style={{ width: CARD_W_PX * scale, height: CARD_H_PX * scale }}
+                style={{ width: pageW * scale, height: pageH * scale }}
               >
                 <iframe
                   ref={iframeRef}
                   title={`${label} preview`}
                   srcDoc={pageHTML}
+                  onLoad={onFrameLoad}
                   sandbox="allow-same-origin"
                   style={{
-                    width: CARD_W_PX,
-                    height: CARD_H_PX,
+                    width: pageW,
+                    height: pageH,
                     border: 0,
                     transform: `scale(${scale})`,
                     transformOrigin: 'top left',
