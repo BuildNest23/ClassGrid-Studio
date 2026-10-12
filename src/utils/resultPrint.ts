@@ -96,6 +96,8 @@ function headerLine(d: AppData): string {
   return parts.join(' • ');
 }
 
+const hasManualPass = (c: ResultPrintCtx) => c.ranked.some(i => i.r.manual && !i.r.computedPass);
+
 function pageClass(orientation: 'portrait' | 'landscape') {
   return orientation === 'landscape' ? 'ps2-land' : 'ps2-port';
 }
@@ -223,7 +225,7 @@ export function buildClassResultHTML(
   const failNote = c.style === 'a' ? 'Failed marks shown in red' : 'Failed marks underlined';
   return `<div class="print-sheet ps2 ps2-${c.style} ${pageClass(layout.orientation)}">
     ${headerHTML(c, 'Class Result Sheet')}
-    ${infoBarHTML(c, [`Pass mark: ${passPct}%`, `Total max: ${c.totalMax}`, `Students: ${data.students.length}`, failNote])}
+    ${infoBarHTML(c, [`Pass mark: ${passPct}%`, `Total max: ${c.totalMax}`, `Students: ${data.students.length}`, failNote, ...(hasManualPass(c) ? ['✱ Passed manually'] : [])])}
     <table class="ps2-table ps2-res">
       <thead><tr>
         <th style="width:6%">Roll</th>
@@ -411,7 +413,7 @@ export function buildMeritListHTML(c: ResultPrintCtx): string {
 
   return `<div class="print-sheet ps2 ps2-${c.style} ps2-port">
     ${headerHTML(c, 'Merit List')}
-    ${infoBarHTML(c, ['Ranked by total marks', `Pass mark: ${passPct}%`, `Total max: ${c.totalMax}`, `Students: ${data.students.length}`])}
+    ${infoBarHTML(c, ['Ranked by total marks', `Pass mark: ${passPct}%`, `Total max: ${c.totalMax}`, `Students: ${data.students.length}`, ...(hasManualPass(c) ? ['✱ Passed manually'] : [])])}
     <table class="ps2-table ps2-merit">
       <thead><tr>
         <th style="width:9%">Rank</th>

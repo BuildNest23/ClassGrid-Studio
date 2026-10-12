@@ -58,7 +58,7 @@ export function normalizeData(raw: unknown): AppData {
         phone: String(s.phone ?? ""),
         address: String(s.address ?? ""),
         notes: String(s.notes ?? ""),
-        createdAt: Number(s.createdAt) || Date.now()
+        createdAt: Number(s.createdAt) || 0 // 0 = unknown join date: counts for all past attendance
       };
     });
 
