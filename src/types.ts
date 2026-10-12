@@ -51,6 +51,8 @@ export type PrintSizeKey = 'xs' | 's' | 'm' | 'l' | 'xl';
 
 export interface AppData {
   schoolName: string;
+  emisCode: string; // optional
+  section: string; // optional
   academicYear: string;
   className: string;
   inchargeName: string;
