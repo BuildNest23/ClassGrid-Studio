@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { AttendanceStatus, Student } from '../../types';
 import { ActionGrid, ActionButton } from '../ActionGrid';
+import { HowItWorks } from '../HowItWorks';
 import {
   todayKey,
   parseKey,
@@ -627,6 +628,19 @@ export const AttendanceView: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <HowItWorks
+        id="attendance"
+        title="How attendance works"
+        steps={[
+          <><b>Pick the date</b> with the arrows or calendar. Future dates are not allowed.</>,
+          <>Everyone starts as <b>Present (P)</b>. Only tap <b>A</b> for absent or <b>L</b> for leave (excused). Tap <b>P</b> to undo. It saves automatically.</>,
+          <>No school that day? Tap <b>Mark Holiday</b>, or <b>Bulk Holidays</b> for Eid or summer break. Holidays and leaves do not count against attendance %.</>,
+          <>When you are done, tap <b>Lock Day</b> so marks can't be changed by mistake.</>,
+          <>Use <b>Print Absentee Slip</b> for the day, or <b>Monthly Register</b> / <b>Print Register</b> for the whole month.</>
+        ]}
+        note="Attendance % = Present ÷ (Present + Absent)."
+      />
+
       {/* Date Bar & Controls */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
         <div className="flex flex-wrap items-center gap-2">
