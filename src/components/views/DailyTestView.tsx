@@ -6,7 +6,9 @@ import {
   dateKey,
   parseKey,
   prettyDate,
-  getSortedStudents
+  getSortedStudents,
+  gridNavKeyDown,
+  gridTabIndex,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import { generateDailyTestRegisterHTML } from '../../utils/dailyTestPrint';
@@ -497,27 +499,29 @@ export const DailyTestView: React.FC = () => {
 
       {/* Student Marks Entry Table */}
       <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl shadow-xs overflow-hidden">
-        <div className="px-4 py-3 border-b border-stone-200 dark:border-stone-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-red-700 dark:text-red-400" />
-            <h3 className="text-sm font-black text-stone-900 dark:text-stone-100">
-              Daily Quick Test Marks · {prettyDate(selectedDate)}
+        <div className="px-4 py-3 border-b border-stone-200 dark:border-stone-800 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="flex items-center gap-1.5 text-sm font-black text-stone-900 dark:text-stone-100">
+              <Sparkles className="w-4 h-4 shrink-0 text-red-700 dark:text-red-400" />
+              Daily Quick Test Marks
             </h3>
+            <p className="mt-0.5 text-xs font-semibold text-stone-500 dark:text-stone-400">
+              {prettyDate(selectedDate)}
+            </p>
           </div>
-          <span className="text-xs font-bold text-stone-400">
-            Scale: 0–10
+          <span className="shrink-0 rounded-full bg-stone-100 dark:bg-stone-800 px-2.5 py-1 text-[11px] font-bold text-stone-600 dark:text-stone-300 whitespace-nowrap">
+            Out of 10
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
               <tr className="bg-stone-50 dark:bg-stone-950/60 border-b border-stone-200 dark:border-stone-800 text-stone-500 dark:text-stone-400 text-[11px] uppercase tracking-wider font-bold">
-                <th className="py-2.5 px-3 w-12 text-center">Sr.</th>
-                <th className="py-2.5 px-3 min-w-[160px]">Student Name</th>
-                <th className="py-2.5 px-3 w-20 text-center">Roll No.</th>
-                <th className="py-2.5 px-3 w-36 text-center">Mark (0–10)</th>
-                <th className="py-2.5 px-3 w-28 text-center">Status</th>
+                <th className="py-2.5 pl-3 pr-1 w-9 text-center">Sr.</th>
+                <th className="py-2.5 px-2">Student</th>
+                <th className="py-2.5 px-2 w-20 text-center">Mark</th>
+                <th className="py-2.5 pl-1 pr-3 w-16 text-center">Absent</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 dark:divide-stone-800/70">
@@ -538,28 +542,22 @@ export const DailyTestView: React.FC = () => {
                     }`}
                   >
                     {/* Sr. No. */}
-                    <td className="py-2 px-3 text-center font-bold text-stone-400 text-xs">
+                    <td className="py-2 pl-3 pr-1 text-center font-bold text-stone-400 text-xs">
                       {idx + 1}
                     </td>
 
                     {/* Student Name */}
-                    <td className="py-2 px-3 font-bold text-stone-900 dark:text-stone-100">
-                      <div>{student.name}</div>
-                      {student.fatherName && (
-                        <div className="text-[11px] font-normal text-stone-400">
-                          s/d of {student.fatherName}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Roll No. */}
-                    <td className="py-2 px-3 text-center font-semibold text-stone-600 dark:text-stone-300">
-                      {student.rollNo || '—'}
+                    <td className="py-2 px-2 font-bold text-stone-900 dark:text-stone-100">
+                      <div className="leading-tight">{student.name}</div>
+                      <div className="text-[11px] font-normal text-stone-400 leading-tight">
+                        Roll {student.rollNo || '—'}
+                        {student.fatherName ? ` · s/d of ${student.fatherName}` : ''}
+                      </div>
                     </td>
 
                     {/* Mark Input Box */}
-                    <td className="py-2 px-3 text-center">
-                      <div className="inline-flex items-center gap-1.5 justify-center">
+                    <td className="py-2 px-2 text-center">
+                      <div className="inline-flex items-center justify-center">
                         <input
                           type="number"
                           step="0.5"
@@ -570,7 +568,12 @@ export const DailyTestView: React.FC = () => {
                           value={isAbsent ? '' : numVal}
                           onChange={e => handleMarkChange(student.id, e.target.value)}
                           onBlur={flushSave}
-                          className={`w-20 text-center py-1.5 px-2 rounded-xl text-sm font-black border transition focus:outline-none ${
+                          inputMode="decimal"
+                          enterKeyHint="next"
+                          data-dcoord={`${idx}_0`}
+                          tabIndex={gridTabIndex(idx, 0, sortedStudents.length)}
+                          onKeyDown={e => gridNavKeyDown(e, 'data-dcoord', idx, 0, sortedStudents.length)}
+                          className={`w-16 text-center py-1.5 px-2 rounded-xl text-sm font-black border transition focus:outline-none ${
                             isAbsent
                               ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 border-transparent cursor-not-allowed'
                               : numVal !== ''
@@ -578,23 +581,22 @@ export const DailyTestView: React.FC = () => {
                               : 'border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 text-stone-900 dark:text-stone-100 focus:ring-2 focus:ring-red-500'
                           }`}
                         />
-                        <span className="text-[11px] font-bold text-stone-400">/10</span>
                       </div>
                     </td>
 
                     {/* Absent Toggle Button */}
-                    <td className="py-2 px-3 text-center">
+                    <td className="py-2 pl-1 pr-3 text-center">
                       <button
                         type="button"
                         onClick={() => handleToggleAbsent(student.id)}
-                        className={`w-20 py-1.5 px-3 rounded-xl text-xs font-black transition cursor-pointer select-none ${
+                        className={`w-14 py-1.5 rounded-xl text-xs font-black transition cursor-pointer select-none ${
                           isAbsent
                             ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-2xs ring-2 ring-rose-400/50'
                             : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300'
                         }`}
                         title={isAbsent ? 'Click to unmark absent' : 'Mark as Absent (A)'}
                       >
-                        {isAbsent ? 'Absent (A)' : 'Mark A'}
+                        {isAbsent ? 'Absent' : 'A'}
                       </button>
                     </td>
                   </tr>

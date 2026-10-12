@@ -13,6 +13,8 @@ import {
   esc,
   getNameColWidth,
   getPrintNameColPct,
+  gridNavKeyDown,
+  gridTabIndex,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
@@ -554,7 +556,7 @@ export const FundsView: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {sortedStudents.map(s => {
+              {sortedStudents.map((s, sIdx) => {
                 const payment = (data.fundPayments[activeFund.id] || {})[s.id] || {};
                 const st = getFundStudentStatus(activeFund.id, s.id);
                 const isPaid = st.code === 'PAID';
@@ -600,6 +602,10 @@ export const FundsView: React.FC = () => {
                           disabled={isExempt}
                           value={amtVal}
                           onCommit={v => handleAmountChange(s.id, v)}
+                          data-fcoord={`${sIdx}_0`}
+                          enterKeyHint="next"
+                          tabIndex={gridTabIndex(sIdx, 0, sortedStudents.length)}
+                          onKeyDown={e => gridNavKeyDown(e, 'data-fcoord', sIdx, 0, sortedStudents.length)}
                           placeholder="0"
                           className="w-14 p-1 text-center font-bold font-mono text-xs rounded border border-transparent focus:border-[#2E5A8A] focus:bg-white dark:focus:bg-[#0C0A09] bg-transparent text-inherit disabled:opacity-30"
                         />

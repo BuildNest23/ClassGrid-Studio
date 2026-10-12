@@ -12,6 +12,8 @@ import {
   getNameColWidth,
   getPrintNameColPct,
   planResultPrintLayout,
+  gridNavKeyDown,
+  gridTabIndex,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import {
@@ -485,17 +487,6 @@ export const ResultsView: React.FC = () => {
   };
 
   // Vertical keyboard navigation on Enter key
-  const handleKeyDownMarks = (e: React.KeyboardEvent, studentIndex: number, subIndex: number) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const nextIndex = e.shiftKey ? studentIndex - 1 : studentIndex + 1;
-      const targetInput = document.querySelector<HTMLInputElement>(`input[data-coord="${nextIndex}_${subIndex}"]`);
-      if (targetInput) {
-        targetInput.focus();
-        targetInput.select();
-      }
-    }
-  };
 
   // Subject Stats (Average, High, Low)
   const subjectStats = activeAsmt.subjects.map(sub => {
@@ -835,7 +826,9 @@ export const ResultsView: React.FC = () => {
                                 data-coord={`${sIdx}_${subIdx}`}
                                 value={displayVal}
                                 onCommit={v => handleMarkChange(s.id, sub.id, v)}
-                                onKeyDown={e => handleKeyDownMarks(e, sIdx, subIdx)}
+                                enterKeyHint="next"
+                                tabIndex={gridTabIndex(sIdx, subIdx, sortedStudents.length)}
+                                onKeyDown={e => gridNavKeyDown(e, 'data-coord', sIdx, subIdx, sortedStudents.length, activeAsmt.subjects.length)}
                                 className={`w-10 p-1 text-center font-bold font-mono text-xs rounded border border-transparent focus:border-[#2E5A8A] focus:bg-white dark:focus:bg-[#0C0A09] bg-transparent text-inherit ${
                                   isAbsent ? 'text-[#7F1D1D] font-extrabold' : ''
                                 } ${isOverMax ? 'ring-2 ring-[#B4791F]' : ''}`}
