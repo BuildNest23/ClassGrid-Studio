@@ -282,7 +282,7 @@ function cardFit(c: ResultPrintCtx): { pad: number; fs: number; remH: number; sc
   return { ...last, scale: 0.7 };
 }
 
-export function buildReportCardsHTML(c: ResultPrintCtx): string {
+export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string): string {
   const { asmt, data, ranked } = c;
   const passPct = Number(asmt.passPercent) || 40;
   const total = ranked.length;
@@ -290,6 +290,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx): string {
   const cardVars = `--mult:${dens.scale};--rc-pad:${dens.pad}mm;--rc-fs:${dens.fs}pt;--rc-remh:${dens.remH}mm`;
 
   return ranked
+    .filter(item => !onlyStudentId || item.s.id === onlyStudentId)
     .map(item => {
       const { s, r } = item;
       const remark = (data.assessmentRemarks[asmt.id] || {})[s.id] || '';
