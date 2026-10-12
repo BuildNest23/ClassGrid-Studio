@@ -655,6 +655,7 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const calcAssessmentResult = useCallback((s: Student, asmt: Assessment) => {
     let total = 0;
+    const passPct = Number(asmt.passPercent) || 40;
     const asmtRes = data.assessmentResults[asmt.id] || {};
     const studentRes = asmtRes[s.id] || {};
 
@@ -670,13 +671,13 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         subId: sub.id,
         mark,
         max,
-        below33: max > 0 && (mark / max) < 0.33
+        // "below33" is a legacy name: a subject is flagged when it is under the assessment's pass mark (same rule as the prints)
+        below33: max > 0 && (mark / max) * 100 < passPct
       };
     });
 
     const maxTotal = asmt.subjects.reduce((sum, sub) => sum + (Number(sub.max) || 0), 0);
     const pct = maxTotal > 0 ? Math.round((total / maxTotal) * 1000) / 10 : 0;
-    const passPct = Number(asmt.passPercent) || 40;
     const computedPass = maxTotal > 0 && pct >= passPct;
     const manual = !!((data.assessmentManualPass[asmt.id] || {})[s.id]);
     const passed = computedPass || manual;
