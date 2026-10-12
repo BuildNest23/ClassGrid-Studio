@@ -1,6 +1,7 @@
 import { SyncInput } from '../SyncInput';
 import { ActionGrid, ActionButton } from '../ActionGrid';
 import { HowItWorks } from '../HowItWorks';
+import { ResultCardModal } from '../ResultCardModal';
 import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Assessment, Student } from '../../types';
@@ -67,6 +68,7 @@ export const ResultsView: React.FC = () => {
   const [copyPickerOpen, setCopyPickerOpen] = useState(false);
 
   // Print design: A = colour, B = black & white (remembered on this device)
+  const [cardStudentId, setCardStudentId] = useState<string | null>(null);
   const [printStyle, setPrintStyleState] = useState<ResultPrintStyle>(loadPrintStyle);
   const [printFooter, setPrintFooterState] = useState<string>(loadPrintFooter);
   const changePrintFooter = (text: string) => {
@@ -828,7 +830,14 @@ export const ResultsView: React.FC = () => {
                         {s.rollNo || "—"}
                       </td>
                       <td className={`sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-left font-semibold truncate ${stickyBg}`}>
-                        {s.name || "(no name)"}
+                        <button
+                          type="button"
+                          onClick={() => setCardStudentId(s.id)}
+                          title="Open result card"
+                          className="max-w-full truncate text-left font-semibold cursor-pointer hover:underline decoration-dotted underline-offset-2"
+                        >
+                          {s.name || "(no name)"}
+                        </button>
                       </td>
 
                       {activeAsmt.subjects.map((sub, subIdx) => {
@@ -1054,6 +1063,14 @@ export const ResultsView: React.FC = () => {
           </ActionButton>
         </ActionGrid>
       </div>
+      {cardStudentId && activeAsmt.subjects.length > 0 && (
+        <ResultCardModal
+          ctx={printCtx()}
+          studentId={cardStudentId}
+          onChange={setCardStudentId}
+          onClose={() => setCardStudentId(null)}
+        />
+      )}
     </div>
   );
 };
