@@ -24,10 +24,13 @@ import {
   FileSpreadsheet,
   AlertCircle,
   Award,
-  Sparkles
+  Sparkles,
+  Info,
+  X
 } from 'lucide-react';
 
 const PRINT_OPTS_KEY = 'classgrid_dt_print_opts';
+const HELP_HIDDEN_KEY = 'classgrid_dt_help_hidden';
 
 interface DtPrintOpts extends DailyTestHeaderOptions {
   blankWithNames: boolean;
@@ -63,6 +66,15 @@ export const DailyTestView: React.FC = () => {
 
   const [selectedDate, setSelectedDate] = useState<string>(todayKey());
   const selectedMonth = selectedDate.slice(0, 7); // "YYYY-MM"
+
+  // How-it-works help box: can be hidden, remembered on this device
+  const [helpHidden, setHelpHidden] = useState<boolean>(() => {
+    try { return localStorage.getItem(HELP_HIDDEN_KEY) === '1'; } catch { return false; }
+  });
+  const toggleHelp = (hide: boolean) => {
+    setHelpHidden(hide);
+    try { localStorage.setItem(HELP_HIDDEN_KEY, hide ? '1' : '0'); } catch { /* ignore */ }
+  };
 
   // Print options (apply to both the filled and the blank register); remembered on this device
   const [printOpts, setPrintOpts] = useState<DtPrintOpts>(loadPrintOpts);
@@ -356,6 +368,42 @@ export const DailyTestView: React.FC = () => {
 
   return (
     <div className="daily-wrap space-y-5">
+      {/* How it works */}
+      {helpHidden ? (
+        <button
+          type="button"
+          onClick={() => toggleHelp(false)}
+          className="flex items-center gap-1.5 text-xs font-bold text-red-800 dark:text-red-300 cursor-pointer"
+        >
+          <Info size={14} /> How does this work?
+        </button>
+      ) : (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-3.5 py-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-sm font-black text-amber-900 dark:text-amber-200">
+              <Info size={16} /> How this register works
+            </div>
+            <button
+              type="button"
+              onClick={() => toggleHelp(true)}
+              aria-label="Hide help"
+              className="p-1 -m-1 text-amber-800 dark:text-amber-300 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <ol className="mt-1.5 space-y-1 text-xs font-semibold text-amber-950 dark:text-amber-100 list-decimal pl-4">
+            <li><b>Pick the date</b> using the arrows or calendar below.</li>
+            <li><b>Type each student's mark</b> in the table (out of 10), or tap <b>A</b> if absent. Marks save automatically and you can change them any time.</li>
+            <li><b>Press Print Register</b>: every mark you entered for the month is filled into the form for you. Nothing is typed on the printout by hand.</li>
+            <li>Want a paper form to write on? Use <b>Print Blank Register</b>.</li>
+          </ol>
+          <p className="mt-1.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+            Any filled form you see is only a sample. Your own entries replace it.
+          </p>
+        </div>
+      )}
+
       {/* Top Header Card: Date, Month & Quick Nav */}
       <div className="bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-2xl p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
