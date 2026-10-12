@@ -4,6 +4,7 @@ import { getSortedStudents, esc } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import { downloadStudentListPNG } from '../../utils/canvasExport';
 import { ActionGrid, ActionButton } from '../ActionGrid';
+import { HowItWorks } from '../HowItWorks';
 import { Printer, Download, ArrowLeft } from 'lucide-react';
 
 export const StudentDirectoryView: React.FC = () => {
@@ -67,6 +68,15 @@ export const StudentDirectoryView: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <HowItWorks
+        id="directory"
+        title="About this list"
+        steps={[
+          <>This page only <b>shows</b> your class list. To add, edit or remove students, go to the <b>Students</b> tab.</>,
+          <>Tap <b>Print View</b> for a paper copy, or <b>Save as Image</b> to share it, for example on WhatsApp.</>
+        ]}
+      />
+
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
         <div className="flex justify-between items-center gap-2 flex-wrap">
           <div>
