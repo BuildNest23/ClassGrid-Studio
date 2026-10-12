@@ -1,5 +1,6 @@
 import { SyncInput } from '../SyncInput';
 import { ActionGrid, ActionButton } from '../ActionGrid';
+import { HowItWorks } from '../HowItWorks';
 import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Assessment, Student } from '../../types';
@@ -119,6 +120,17 @@ export const ResultsView: React.FC = () => {
 
     return (
       <div className="space-y-3">
+        <HowItWorks
+          id="results-list"
+          title="How results work"
+          steps={[
+            <>Tap <b>+ New Assessment</b> for each exam, e.g. Monthly Test or Mid-Term, and set its pass percentage.</>,
+            <>Open it, add your <b>subjects</b> with their maximum marks.</>,
+            <>Enter each student's marks. <b>Total, Result and Rank are worked out for you.</b></>,
+            <>Print a <b>Class Result Sheet</b>, <b>Report Cards</b> or a <b>Merit List</b>.</>
+          ]}
+        />
+
         <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs">
           <div className="flex justify-between items-center gap-2 flex-wrap">
             <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4]">
@@ -560,6 +572,19 @@ export const ResultsView: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <HowItWorks
+        id="results-detail"
+        title="How to enter results"
+        steps={[
+          <>Add <b>subjects</b> with their maximum marks. <b>Copy Subjects</b> reuses them from another assessment.</>,
+          <>Type each student's marks in the table. Tap <b>A</b> if the student was absent in that subject.</>,
+          <><b>Total, Result and Rank update automatically.</b> The pass percentage is set for this assessment.</>,
+          <>A student who just missed can be passed manually with <b>Pass anyway</b>. Tap <b>Undo</b> to remove it.</>,
+          <>Choose <b>Colour</b> or <b>Black &amp; White</b> under Print Options, then print the Class Result Sheet, Report Cards or Merit List.</>
+        ]}
+        note="Marks save automatically as you type."
+      />
+
       {/* Assessment Header Card */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-2">
         <div className="flex justify-between items-center gap-2 pb-1 border-b border-[#E7E5E4] dark:border-[#44403C]">
