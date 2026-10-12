@@ -553,7 +553,7 @@ export const ResultsView: React.FC = () => {
       toast("Add subjects first.", "error");
       return;
     }
-    triggerPrint(buildReportCardsHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, true);
+    triggerPrint(buildReportCardsHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, false);
   };
 
   const handlePrintMeritList = () => {
