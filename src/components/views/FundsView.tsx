@@ -1,6 +1,7 @@
 import { SyncInput } from '../SyncInput';
 import { ActionGrid, ActionButton } from '../ActionGrid';
 import { HowItWorks } from '../HowItWorks';
+import { FundCardModal } from '../FundCardModal';
 import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Fund, Student } from '../../types';
@@ -48,6 +49,7 @@ export const FundsView: React.FC = () => {
   const [newFundAmount, setNewFundAmount] = useState("");
   const [newFundDue, setNewFundDue] = useState("");
 
+  const [cardStudentId, setCardStudentId] = useState<string | null>(null);
   const activeFund = data.funds.find(f => f.id === activeFundId);
   const sortedStudents = getSortedStudents(data.students);
 
@@ -97,7 +99,7 @@ export const FundsView: React.FC = () => {
           steps={[
             <>A <b>fund</b> is any collection, e.g. Monthly Fee, Trip or Books. Tap <b>+ New Fund</b> to create one.</>,
             <>Give it a name and an amount per student. Leave the amount blank if each student pays a different amount. A due date is optional.</>,
-            <>Open the fund, then enter what each student paid. <b>Status is worked out for you.</b></>,
+            <>Open the fund, then enter what each student paid. <b>Status is worked out for you.</b> Tap a student's name for a shareable fee statement.</>,
             <>Print a <b>Collection Sheet</b> or a <b>Pending List</b>.</>
           ]}
         />
@@ -475,6 +477,7 @@ export const FundsView: React.FC = () => {
           <>Status shows <b>Paid</b>, <b>Partial</b> or <b>Pending</b> by itself, based on the amount.</>,
           <>Tap <b>E</b> next to the amount to mark a student <b>Exempt</b>. They are left out of the totals.</>,
           <>Use <b>Mark All Paid</b> when everyone has paid the full amount, if it is shown.</>,
+          <>Tap a <b>student's name</b> to open their <b>Fee Statement</b> (all funds, paid and balance). Use the arrows to move between students, then <b>Print</b>, <b>Save as image</b> or <b>Share</b> it with the parent.</>,
           <>Print the <b>Collection Sheet</b>, or the <b>Pending List</b> to see who still owes.</>
         ]}
         note="Everything saves automatically as you type."
@@ -609,7 +612,14 @@ export const FundsView: React.FC = () => {
                         ? 'bg-[#D1FAE5]! dark:bg-[#064E3B]! text-[#065F46] dark:text-[#A7F3D0]'
                         : 'bg-white! dark:bg-[#1C1917]!'
                     }`}>
-                      {s.name || "(no name)"}
+                      <button
+                        type="button"
+                        onClick={() => setCardStudentId(s.id)}
+                        title="Open fee statement"
+                        className="max-w-full truncate text-left font-semibold cursor-pointer hover:underline decoration-dotted underline-offset-2"
+                      >
+                        {s.name || "(no name)"}
+                      </button>
                     </td>
 
                     {/* Amount Cell with E (Exempt) toggle */}
@@ -716,6 +726,15 @@ export const FundsView: React.FC = () => {
           </ActionButton>
         </ActionGrid>
       </div>
+      {cardStudentId && (
+        <FundCardModal
+          data={data}
+          students={sortedStudents.map(st => ({ id: st.id, name: st.name, rollNo: st.rollNo }))}
+          studentId={cardStudentId}
+          onChange={setCardStudentId}
+          onClose={() => setCardStudentId(null)}
+        />
+      )}
     </div>
   );
 };

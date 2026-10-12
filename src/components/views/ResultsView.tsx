@@ -128,7 +128,7 @@ export const ResultsView: React.FC = () => {
           steps={[
             <>Tap <b>+ New Assessment</b> for each exam, e.g. Monthly Test or Mid-Term, and set its pass percentage.</>,
             <>Open it, add your <b>subjects</b> with their maximum marks.</>,
-            <>Enter each student's marks. <b>Total, Result and Rank are worked out for you.</b></>,
+            <>Enter each student's marks. <b>Total, Result and Rank are worked out for you.</b> Tap a student's name to open their result card.</>,
             <>Print a <b>Class Result Sheet</b>, <b>Report Cards</b> or a <b>Merit List</b>.</>
           ]}
         />
@@ -582,7 +582,8 @@ export const ResultsView: React.FC = () => {
           <>Type each student's marks in the table. Tap <b>A</b> if the student was absent in that subject.</>,
           <><b>Total, Result and Rank update automatically.</b> The pass percentage is set for this assessment.</>,
           <>A student who just missed can be passed manually with <b>Pass anyway</b>. Tap <b>Undo</b> to remove it.</>,
-          <>Choose <b>Colour</b> or <b>Black &amp; White</b> under Print Options, then print the Class Result Sheet, Report Cards or Merit List.</>
+          <>Tap a <b>student's name</b> to open their <b>result card</b>. Use the arrows to move between students, then <b>Print</b>, <b>Save as image</b> or <b>Share</b> it.</>,
+          <>Choose <b>Colour</b> or <b>Black &amp; White</b> under Print Options (it also changes the card), then print the Class Result Sheet, Report Cards or Merit List.</>
         ]}
         note="Marks save automatically as you type."
       />
