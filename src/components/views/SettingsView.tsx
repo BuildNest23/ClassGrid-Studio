@@ -20,6 +20,29 @@ import {
 } from 'lucide-react';
 import { generateSampleClassData } from '../../utils/sampleData';
 
+const LAST_BACKUP_KEY = 'classgrid_last_backup';
+const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
+
+/** Approximate local-storage use (characters stored by this app) */
+function readStorageChars(): number {
+  let total = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      total += k.length + (localStorage.getItem(k) || '').length;
+    }
+  } catch { /* ignore */ }
+  return total;
+}
+
+function readLastBackup(): number | null {
+  try {
+    const v = Number(localStorage.getItem(LAST_BACKUP_KEY));
+    return v > 0 ? v : null;
+  } catch { return null; }
+}
+
 export const SettingsView: React.FC = () => {
   const {
     data,
@@ -37,6 +60,17 @@ export const SettingsView: React.FC = () => {
   const [inchargeName, setInchargeName] = useState(data.inchargeName);
   const [schoolName, setSchoolName] = useState(data.schoolName);
   const [academicYear, setAcademicYear] = useState(data.academicYear);
+  const [lastBackup, setLastBackup] = useState<number | null>(readLastBackup);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const usedChars = React.useMemo(() => readStorageChars(), [data]);
+  const usedPct = Math.min(100, Math.round((usedChars / STORAGE_LIMIT_CHARS) * 100));
+  const usedLabel = usedChars < 1024 * 1024
+    ? `${Math.max(1, Math.round(usedChars / 1024))} KB`
+    : `${(usedChars / (1024 * 1024)).toFixed(1)} MB`;
+  const logoKB = Math.round((data.schoolLogo || '').length / 1024);
+  const daysSinceBackup = lastBackup ? Math.floor((Date.now() - lastBackup) / 86400000) : null;
+  const backupOld = daysSinceBackup === null || daysSinceBackup > 30;
+  const barColor = usedPct >= 80 ? 'bg-red-600' : usedPct >= 50 ? 'bg-amber-500' : 'bg-emerald-600';
   const [emisCode, setEmisCode] = useState(data.emisCode || '');
   const [section, setSection] = useState(data.section || '');
   const [printNote, setPrintNote] = useState(data.printNote);
@@ -141,6 +175,8 @@ export const SettingsView: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
+    try { localStorage.setItem(LAST_BACKUP_KEY, String(Date.now())); } catch { /* ignore */ }
+    setLastBackup(Date.now());
     toast("Backup file downloaded.", "success");
   };
 
@@ -480,6 +516,41 @@ export const SettingsView: React.FC = () => {
         <p className="text-xs text-[#6E6656] dark:text-[#A79B85]">
           Export all class records, attendance history, assessments, and funds to a JSON backup file. Import it on another computer or browser to restore everything.
         </p>
+
+        {/* Storage meter + backup status */}
+        <div className="rounded-xl border border-[#E5DFD0] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] p-3 space-y-1.5">
+          <div className="flex justify-between items-baseline text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
+            <span>Storage used</span>
+            <span>{usedLabel} of about 5 MB ({usedPct}%)</span>
+          </div>
+          <div
+            className="h-2 rounded-full bg-[#E5DFD0] dark:bg-[#3A3527] overflow-hidden"
+            role="progressbar"
+            aria-valuenow={usedPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Storage used"
+          >
+            <div className={`h-full ${barColor}`} style={{ width: `${Math.max(usedPct, 1)}%` }} />
+          </div>
+          {logoKB > 200 && (
+            <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+              Your school logo uses {logoKB} KB. A smaller logo will free up space.
+            </p>
+          )}
+          {usedPct >= 80 && (
+            <p className="text-[11px] font-semibold text-red-700 dark:text-red-400">
+              Storage is almost full. Export a backup now, and remove the logo if it is large.
+            </p>
+          )}
+          <p className={`text-[11px] font-semibold ${backupOld ? 'text-amber-800 dark:text-amber-300' : 'text-[#6E6656] dark:text-[#A79B85]'}`}>
+            {daysSinceBackup === null
+              ? 'No backup exported from this device yet. Tap Export Backup below.'
+              : daysSinceBackup === 0
+              ? 'Last backup: today'
+              : `Last backup: ${daysSinceBackup} day${daysSinceBackup === 1 ? '' : 's'} ago${backupOld ? '. Time for a new one.' : ''}`}
+          </p>
+        </div>
 
         <ActionGrid cols={2}>
           <ActionButton
