@@ -3,6 +3,7 @@ import { useClassroom } from '../../context/ClassroomContext';
 import { PrintSizeKey } from '../../types';
 import { PRINT_SIZES } from '../../utils/helpers';
 import { ActionGrid, ActionButton } from '../ActionGrid';
+import { HowItWorks } from '../HowItWorks';
 import {
   Printer,
   Image,
@@ -229,6 +230,18 @@ export const SettingsView: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <HowItWorks
+        id="settings"
+        title="How settings work"
+        steps={[
+          <>Fill in <b>Class Name</b> and your <b>School Name</b> first. They appear at the top of every printout. EMIS Code and Section are optional.</>,
+          <>Tap <b>Save Setup</b> after changing these details. They are not saved until you do.</>,
+          <>If a printout runs onto a second page, choose a smaller <b>Print Size</b>. You can also add your <b>School Logo</b>.</>,
+          <>Tap <b>Export Backup</b> regularly and keep the file safe, for example on WhatsApp or Google Drive. <b>Import Backup</b> restores it on any phone or computer.</>
+        ]}
+        note="Careful: Load Demo Data and Reset Everything both replace your real records. Export a backup first."
+      />
+
       {/* Classroom Setup Form */}
       <div className="bg-white dark:bg-[#232019] border border-[#E5DFD0] dark:border-[#3A3527] rounded-xl p-4 shadow-xs">
         <h2 className="text-base font-bold font-serif-academic text-[#232019] dark:text-[#EFE9DD] mb-3">
