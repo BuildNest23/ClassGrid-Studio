@@ -1,5 +1,6 @@
 import { SyncInput } from '../SyncInput';
 import { ActionGrid, ActionButton } from '../ActionGrid';
+import { HowItWorks } from '../HowItWorks';
 import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Fund, Student } from '../../types';
@@ -90,6 +91,17 @@ export const FundsView: React.FC = () => {
 
     return (
       <div className="space-y-3">
+        <HowItWorks
+          id="funds-list"
+          title="How funds work"
+          steps={[
+            <>A <b>fund</b> is any collection, e.g. Monthly Fee, Trip or Books. Tap <b>+ New Fund</b> to create one.</>,
+            <>Give it a name and an amount per student. Leave the amount blank if each student pays a different amount. A due date is optional.</>,
+            <>Open the fund, then enter what each student paid. <b>Status is worked out for you.</b></>,
+            <>Print a <b>Collection Sheet</b> or a <b>Pending List</b>.</>
+          ]}
+        />
+
         <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs">
           <div className="flex justify-between items-center gap-2 flex-wrap">
             <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4]">
@@ -455,6 +467,19 @@ export const FundsView: React.FC = () => {
 
   return (
     <div className="space-y-3">
+      <HowItWorks
+        id="funds-detail"
+        title="How to record payments"
+        steps={[
+          <>Type the amount each student paid in the <b>Amount</b> column. The date fills in with today automatically and you can change it.</>,
+          <>Status shows <b>Paid</b>, <b>Partial</b> or <b>Pending</b> by itself, based on the amount.</>,
+          <>Tap <b>E</b> next to the amount to mark a student <b>Exempt</b>. They are left out of the totals.</>,
+          <>Use <b>Mark All Paid</b> when everyone has paid the full amount, if it is shown.</>,
+          <>Print the <b>Collection Sheet</b>, or the <b>Pending List</b> to see who still owes.</>
+        ]}
+        note="Everything saves automatically as you type."
+      />
+
       {/* Active Fund Header Card */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-2">
         <div className="flex justify-between items-center gap-2 pb-1 border-b border-[#E7E5E4] dark:border-[#44403C]">
