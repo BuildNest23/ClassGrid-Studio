@@ -1,5 +1,6 @@
 import { AppData, Student } from '../types';
 import { getSortedStudents, loadImage, prettyDate } from './helpers';
+import { exportImageBlob } from './nativeFileExport';
 
 export async function downloadAbsenteeSlipPNG(dateKey: string, data: AppData): Promise<boolean> {
   const day = data.attendance[dateKey];
@@ -185,21 +186,16 @@ export async function downloadAbsenteeSlipPNG(dateKey: string, data: AppData): P
   }
 
   return new Promise<boolean>(resolve => {
-    canvas.toBlob(blob => {
+    canvas.toBlob(async blob => {
       if (!blob) {
         resolve(false);
         return;
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
       const safeDate = dateKey.replace(/[^\d-]/g, "");
-      a.download = `absentee-slip-${safeDate}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 3000);
-      resolve(true);
+      const filename = `absentee-slip-${safeDate}.png`;
+      const title = `Absentee Slip - ${prettyDate(dateKey)}`;
+      const ok = await exportImageBlob(blob, filename, title);
+      resolve(ok);
     }, "image/png");
   });
 }
@@ -349,21 +345,17 @@ export async function downloadStudentListPNG(data: AppData): Promise<boolean> {
   });
 
   return new Promise<boolean>(resolve => {
-    canvas.toBlob(blob => {
+    canvas.toBlob(async blob => {
       if (!blob) {
         resolve(false);
         return;
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
       const stamp = new Date().toISOString().slice(0, 10);
-      a.download = `students-${stamp}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 3000);
-      resolve(true);
+      const filename = `students-${stamp}.png`;
+      const title = `Student List - ${stamp}`;
+      const ok = await exportImageBlob(blob, filename, title);
+      resolve(ok);
     }, "image/png");
   });
 }
+

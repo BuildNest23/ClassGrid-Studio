@@ -1,138 +1,89 @@
-# Android Capacitor Native Print Integration (Phase 1)
+# Android Launcher Icon & Branded Splash Screen Implementation Plan
 
-Enable native Android printing and "Save as PDF" functionality across all report modules (Attendance, Results, Funds, Daily Tests) in the Capacitor Android build using the native Android PrintManager bridge, while maintaining seamless desktop and browser printing.
+Configure the Android application to build with the authentic ClassGrid branding icon (`public/icons/icon-512.png`) instead of the default Capacitor template icon, and add a matching branded splash screen for GitHub Actions APK builds.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> In accordance with your request to solve the three Android issues (print, backup, image) one-by-one, this plan covers **Issue 1: Native Print & PDF Save**. The remaining issues (backup export via Android share sheet, and image storage/selection) will follow in subsequent iterations once printing is verified.
+> The clarifying questions have been confirmed by the user. The plan will use the official ClassGrid app icon and generate both launcher icons and a branded splash screen.
 
-- **Confirmed Decision (Focus Area)**: Starting with the **Print fix** as the first priority.
-- **Confirmed Decision (Android Print Behavior)**: Trigger the native Android system print manager when tapping Print on mobile, allowing direct printing to physical/network printers or choosing Android's built-in **"Save as PDF"** option.
-- **Confirmed Decision (Native Bridge)**: Use `@capgo/capacitor-printer` to interface with Android's `PrintManager` and `PrintDocumentAdapter`, preserving full compatibility with Capacitor 8.
-- **Confirmed Decision (Web Continuity)**: Automatically detect platform via `Capacitor.isNativePlatform()`; standard web browsers will continue using the high-performance inline DOM `#printArea` + `window.print()` workflow.
+- **Confirmed Decision 1**: Use the current ClassGrid app icon (`public/icons/icon-512.png`) as the official Android launcher icon across all screen densities.
+- **Confirmed Decision 2**: Include both standard/adaptive launcher icons and a matching branded splash screen matching the theme (`#991B1B` crimson with centered emblem).
+- **Technical Mechanism**: Because GitHub Actions creates the `android/` directory dynamically via `npx cap add android`, default Capacitor placeholder icons are generated unless replaced. We will supply pre-rendered Android resource directories (`android-res/res/`) and an automated sync hook in `package.json` and `.github/workflows/android.yml` to inject the icons into `android/app/src/main/res/` prior to `assembleDebug`.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Teachers and school administrators using the Android app can tap the "Print" button in any section (Student Merit Lists, Daily Test Sheets, Attendance Registers, Fee Vouchers, Summary Reports) to open the native Android system Print dialog. From there, they can select a physical printer or tap "Save as PDF" to save the formatted document directly to device storage.
-- **Target Audience / Persona**: School administrators and teachers using the application on Android tablets and smartphones, as well as desktop web browsers.
-- **Key Value**: Resolves the Android WebView limitation where standard `window.print()` calls fail or are silently ignored, providing native print and PDF export capabilities with zero external dependencies.
+- **What It Does**: Replaces the generic blue Capacitor shield launcher icon on installed Android APKs with the real ClassGrid identity (crimson shield emblem), providing full adaptive icon support (square, circular, and squircle) on Android 8 through 15+, and displays a clean splash screen during initial webview load.
+- **Target Audience**: Teachers and school administrators installing the ClassGrid APK built from GitHub Actions releases.
+- **Key Value**: The installed Android app displays the real brand identity on the home screen, app drawer, and system settings, ensuring professional presentation and brand recognition.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Key User Flows
-
-1. **Initiate Print on Android**:
-   - The user navigates to Attendance, Results, Funds, or Daily Test.
-   - The user clicks or taps "Print" (e.g., "Print Sheet", "Print Card", "Print Register").
-   - A brief non-blocking notification ("Opening Android Print...") appears if rendering takes more than a few milliseconds.
-   - The native Android system print overlay opens immediately over the app, showing:
-     - Real-time page preview with accurate school header, logo, borders, and student tabular data.
-     - Destination selector (defaulting to "Save as PDF" or connected Wi-Fi/Bluetooth printer).
-     - Paper size (A4), orientation (Portrait or Landscape based on module settings), and page count.
-   - The user selects "Save as PDF" or sends to printer. Upon completion or dismissal, the app cleanly resumes where the user left off.
-
-2. **Initiate Print on Web**:
-   - On desktop browsers or Chrome mobile, the app continues using the established browser print preview dialog (`window.print()`).
-
-### Visual Identity & Print Fidelity
-
-- **Page Dimensions & Orientations**:
-  - Landscape modules (e.g., Attendance Register, Results Master Sheet) automatically specify `size: A4 landscape; margin: 10mm;`.
-  - Portrait modules (e.g., Fee Vouchers, Single Student Cards, Daily Test Summaries) specify `size: A4 portrait; margin: 12mm;`.
-- **Styling Preservation**:
-  - The offscreen HTML document generated for Android will bundle the application's print stylesheet (`index.css` print rules), including font declarations, solid high-contrast borders, exact column alignments, and school branding.
-  - School logos (stored as Base64 data URLs) will render inline without requiring network requests or external storage permissions.
+- **Launcher Icon Visuals**:
+  - **Standard Icon (`ic_launcher.png`)**: Full-color ClassGrid crimson emblem with subtle inner shadow on transparent background for legacy Android launchers.
+  - **Round Icon (`ic_launcher_round.png`)**: Circular formatted version for Google Pixel, Samsung One UI, and launchers enforcing circular masks.
+  - **Adaptive Foreground (`ic_launcher_foreground.png`)**: 108dp-canvas foreground emblem paired with adaptive background (`ic_launcher_background.xml`), allowing Android's adaptive icon engine to apply user-customized squircle/teardrop/circle masks seamlessly.
+- **Splash Screen Visuals**:
+  - Centered high-resolution ClassGrid logo against the official brand background color `#991B1B` (or system theme surface), eliminating the white flash on native Android app startup.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Native Print Plugin Selection (`@capgo/capacitor-printer`)**
-  - *Chosen Approach*: Install `@capgo/capacitor-printer` (v8), an open-source Capacitor plugin that directly calls Android's native `PrintManager.print(...)` with a custom `PrintDocumentAdapter`.
-  - *Why*: It is free, MIT-licensed, fully compatible with Capacitor 8 (`@capacitor/android` v8), and gives users access to both physical printers and Android's native "Save as PDF" engine.
-  - *Alternatives Considered*:
-    - Relying on pure web `window.print()`: Fails on Android WebViews because `android.webkit.WebView` has no default print handler.
-    - Generating PDFs in pure JavaScript via `jspdf` / `html2canvas`: Produces bloated, non-searchable raster images and breaks multi-page pagination rules. Native `PrintManager` creates crisp, vector-grade, selectable PDFs.
-
-- **Decision 2: Comprehensive Self-Contained HTML Payload for Android**
-  - *Chosen Approach*: When invoking `Printer.printHtml(...)` on native Android, construct a standalone HTML string containing `<!DOCTYPE html>`, meta viewport, the exact compiled print CSS rules from `index.css`, `@page` orientation directives, and the report body.
-  - *Why*: Android's `PrintDocumentAdapter` creates an isolated offscreen WebView to generate the print document; injecting the full CSS ensure identical rendering to the web version.
-
-- **Decision 3: Zero Impact on Web Browser Mode**
-  - *Chosen Approach*: Wrap the print invocation with platform detection:
-    ```ts
-    if (Capacitor.isNativePlatform()) {
-      await Printer.printHtml({ name: documentTitle, html: compiledDocument });
-    } else {
-      window.print();
-    }
-    ```
-  - *Why*: Ensures desktop and browser users experience instant, zero-overhead printing without changing their existing workflow.
+- **Decision 1: Pre-Generated Android Res Tree vs. Runtime NPM Asset Generator**:
+  - *Chosen Approach*: Generate and commit the exact Android `res/` tree (`mipmap-mdpi`, `mipmap-hdpi`, `mipmap-xhdpi`, `mipmap-xxhdpi`, `mipmap-xxxhdpi`, `drawable/`) directly into `android-res/res/`, accompanied by a lightweight sync script and CI step.
+  - *Why*: In GitHub Actions, relying on heavy external asset generators during CI can fail due to missing system binaries (like canvas/cairo) or network timeouts. Pre-rendered pixel-perfect assets ensure deterministic, 100% reliable builds on GitHub Actions without extra build minutes.
+- **Decision 2: Adaptive Icon Compatibility**:
+  - *Chosen Approach*: Support both legacy `ic_launcher.png` and modern Android adaptive icon definitions (`mipmap-anydpi-v26/ic_launcher.xml` referencing foreground and background color).
+  - *Why*: Modern Android (versions 8.0 through 15+) ignores standard PNGs if adaptive definitions are present or applies an ugly white background box. Complete adaptive assets guarantee crisp icons on all modern phones.
 
 ---
 
 ## 4. Technical Architecture & Data Strategy
 
-### System Architecture Diagram
-
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    User Actions (UI Views)                   │
-│   AttendanceView  │  ResultsView  │  FundsView  │  DailyTest │
-└──────────────────────────────┬───────────────────────────────┘
-                               │ calls
+┌─────────────────────────────────────────────────────────────┐
+│                 Source Asset (icon-512.png)                 │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                [Asset Generation & Packaging]
+                               │
                                ▼
-┌──────────────────────────────────────────────────────────────┐
-│                     src/utils/printEngine.ts                 │
-│                                                              │
-│  1. Injects content into #printArea                          │
-│  2. Assembles full print stylesheet & orientation rules      │
-│  3. Platform Detection: Capacitor.isNativePlatform()         │
-└──────────────┬───────────────────────────────┬───────────────┘
-               │                               │
-     [Native Android / iOS]                 [Web Browser]
-               │                               │
-               ▼                               ▼
-┌──────────────────────────────┐ ┌──────────────────────────────┐
-│  @capgo/capacitor-printer    │ │  Standard Browser Print      │
-│  Printer.printHtml({         │ │  window.print()              │
-│    name: 'Report',           │ │                              │
-│    html: fullHtmlDoc         │ └──────────────┬───────────────┘
-│  })                          │                │
-└──────────────┬───────────────┘                │
-               │                                │
-               ▼                                ▼
-┌──────────────────────────────┐ ┌──────────────────────────────┐
-│  Android Native PrintManager │ │  Browser Print Preview       │
-│  • Save as PDF               │ │                              │
-│  • System Printer Selection  │ │                              │
-└──────────────────────────────┘ └──────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│             Repository Assets: android-res/res/             │
+│  ├─ mipmap-mdpi/      (48px icon, 108px foreground)         │
+│  ├─ mipmap-hdpi/      (72px icon, 162px foreground)         │
+│  ├─ mipmap-xhdpi/     (96px icon, 216px foreground)         │
+│  ├─ mipmap-xxhdpi/    (144px icon, 324px foreground)        │
+│  ├─ mipmap-xxxhdpi/   (192px icon, 432px foreground)        │
+│  ├─ mipmap-anydpi-v26/ (Adaptive XML definitions)           │
+│  ├─ drawable/         (splash.png & background colors)      │
+│  └─ values/colors.xml (launcher background color token)     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                   [GitHub Actions Workflow]
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│               android/app/src/main/res/                     │
+│  (Copied after "npx cap add android" & "cap sync android")  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Gradle: ./gradlew assembleDebug                │
+│             ==> Output: app-debug.apk with real icon!       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Execution Steps & Milestones
-
-1. **Package Installation**:
-   - Install `@capgo/capacitor-printer` via `install_applet_package`.
-2. **Print Engine Enhancement (`src/utils/printEngine.ts`)**:
-   - Import `Printer` from `@capgo/capacitor-printer` and `Capacitor` from `@capacitor/core`.
-   - Update `triggerPrint` to support asynchronous execution.
-   - Build a helper `buildFullPrintHtml(contentHTML, mult, orientation, pageNumbers)` that combines:
-     - Reset styles and print sheet layout styles.
-     - `@page` orientation rules (`A4 portrait` vs `A4 landscape`).
-     - CSS variables (e.g. `--mult`).
-     - The report HTML payload.
-   - For `Capacitor.isNativePlatform()`:
-     - Invoke `Printer.printHtml({ name: title, html: fullDoc })`.
-     - Automatically clean up `#printArea` upon resolution.
-   - For web:
-     - Fall back to the existing two-frame `requestAnimationFrame` + `window.print()` sequence.
-3. **Compilation & Verification**:
-   - Run `compile_applet` to verify TypeScript builds cleanly.
-   - Verify that all print modules compile with no type mismatches.
-4. **Handoff for Issue 2 (Backup Export & Share Sheet)**:
-   - Once Print is deployed and confirmed working on your Android build, we proceed to Issue 2 (Backup JSON export via Android Share Sheet).
+### Steps to Implement:
+1. **Generate All Android Mipmap Densities**: Render pixel-perfect PNGs for mdpi (48px), hdpi (72px), xhdpi (96px), xxhdpi (144px), and xxxhdpi (192px) from `public/icons/icon-512.png` along with circular variants and adaptive foregrounds.
+2. **Setup Adaptive XML & Color Tokens**: Create `values/ic_launcher_background.xml` (or `colors.xml` with `#991B1B` / `#881337`) and `mipmap-anydpi-v26/ic_launcher.xml` / `ic_launcher_round.xml`.
+3. **Setup Splash Screen Assets**: Create `drawable/splash.png` and splash theme configs.
+4. **Update `.github/workflows/android.yml`**: Add a copy step `cp -r android-res/res/* android/app/src/main/res/` right after `npx cap sync android` and before `./gradlew assembleDebug`.
+5. **Add Local Sync Script in `package.json`**: Provide `npm run sync:android` so if someone syncs Android locally or in CI, the icons are guaranteed to be in place.
+6. **Verify Compilation & Asset Integrity**: Test build and verify that all references are valid.

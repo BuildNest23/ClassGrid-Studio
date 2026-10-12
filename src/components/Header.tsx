@@ -10,6 +10,7 @@ import {
   Share,
   X
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 interface HeaderProps {
   activeViewTitle?: string;
@@ -52,7 +53,8 @@ export const Header: React.FC<HeaderProps> = ({ activeViewTitle }) => {
       }
       const y = window.scrollY;
       const lastY = lastYRef.current;
-      if (y > 80 && y > lastY + 6) setHidden(true);
+      if (y <= 10) setHidden(false);
+      else if (y > 80 && y > lastY + 6) setHidden(true);
       else if (y < lastY - 6) setHidden(false);
       lastYRef.current = y;
     };
@@ -61,6 +63,11 @@ export const Header: React.FC<HeaderProps> = ({ activeViewTitle }) => {
   }, []);
 
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      setShowInstallButton(false);
+      return;
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -104,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({ activeViewTitle }) => {
     : 'Classroom Administration';
 
   return (
-    <header className={`sticky top-0 z-30 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 transition-[transform,background-color,border-color] duration-250 ${hiddenOnScroll ? '-translate-y-full' : 'translate-y-0'}`}>
+    <header className={`sticky top-0 z-30 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 pt-safe transition-[transform,background-color,border-color] duration-250 ${hiddenOnScroll ? '-translate-y-full' : 'translate-y-0'}`}>
       <div className="flex items-center justify-between gap-3 px-3.5 sm:px-6 h-14 max-w-7xl mx-auto">
         {/* Brand Lockup */}
         <div className="flex items-center gap-2.5 min-w-0">
@@ -221,7 +228,7 @@ export const Header: React.FC<HeaderProps> = ({ activeViewTitle }) => {
       {/* Install Helper Dialog */}
       {showInstallModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-[max(1rem,calc(var(--safe-top,env(safe-area-inset-top,0px))+0.75rem))] pb-[max(1rem,calc(var(--safe-bottom,env(safe-area-inset-bottom,0px))+0.75rem))] bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setShowInstallModal(null)}
         >
           <div

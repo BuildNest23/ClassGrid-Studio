@@ -1,6 +1,8 @@
 // Turns a report-card HTML (same markup the printer uses) into a preview page, a PNG, a PDF
 // and a share-able file. No extra libraries: the card is drawn through an SVG <foreignObject>.
 
+import { exportImageBlob, exportFileBlob } from './nativeFileExport';
+
 export const CARD_W_PX = 794;   // A4 width at 96 dpi
 export const CARD_H_PX = 1123;  // A4 height at 96 dpi
 
@@ -143,29 +145,19 @@ export function safeFileName(s: string): string {
   return s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Result';
 }
 
-export function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+export function downloadBlob(blob: Blob, filename: string, title?: string) {
+  // If run in native Capacitor, exportImageBlob automatically writes to cache and opens the share sheet.
+  // On desktop / web browser, it performs standard URL.createObjectURL anchor download.
+  exportImageBlob(blob, filename, title);
 }
 
-/** Opens the phone's share sheet with the file; returns false when the device cannot share files. */
+/** Opens the native share sheet with the file on Android/iOS; attempts Web Share on mobile web; downloads on desktop */
 export async function shareFile(blob: Blob, filename: string, title: string): Promise<boolean> {
-  const file = new File([blob], filename, { type: blob.type });
-  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-  if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
-    try {
-      await nav.share({ files: [file], title });
-      return true;
-    } catch (e) {
-      if ((e as Error)?.name === 'AbortError') return true; // user closed the share sheet
-      return false;
-    }
-  }
-  return false;
+  return await exportFileBlob(blob, filename, {
+    title,
+    dialogTitle: `Share ${title}`,
+    preferShareOnWeb: true,
+  });
 }
+
+

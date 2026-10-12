@@ -16,9 +16,12 @@ import {
   Upload,
   Download,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Share2
 } from 'lucide-react';
 import { generateSampleClassData } from '../../utils/sampleData';
+import { exportFileBlob } from '../../utils/nativeFileExport';
+import { Capacitor } from '@capacitor/core';
 
 const LAST_BACKUP_KEY = 'classgrid_last_backup';
 const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
@@ -157,7 +160,7 @@ export const SettingsView: React.FC = () => {
   };
 
   // Export JSON Backup
-  const handleExportBackup = () => {
+  const handleExportBackup = async () => {
     const payload = {
       app: "ClassroomManager",
       version: 6,
@@ -166,18 +169,23 @@ export const SettingsView: React.FC = () => {
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
     const stamp = new Date().toISOString().slice(0, 10);
-    a.download = `classroom-backup-${stamp}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    const filename = `classroom-backup-${stamp}.json`;
+    const title = `ClassGrid Backup (${stamp})`;
+
+    await exportFileBlob(blob, filename, {
+      title,
+      dialogTitle: "Save or Share Backup File",
+      preferShareOnWeb: false
+    });
+
     try { localStorage.setItem(LAST_BACKUP_KEY, String(Date.now())); } catch { /* ignore */ }
     setLastBackup(Date.now());
-    toast("Backup file downloaded.", "success");
+    if (Capacitor.isNativePlatform()) {
+      toast("Backup ready in Android share sheet.", "success");
+    } else {
+      toast("Backup file downloaded.", "success");
+    }
   };
 
   // Import JSON Backup
@@ -555,10 +563,10 @@ export const SettingsView: React.FC = () => {
         <ActionGrid cols={2}>
           <ActionButton
             variant="primary"
-            icon={Download}
+            icon={Capacitor.isNativePlatform() ? Share2 : Download}
             onClick={handleExportBackup}
           >
-            Export Backup
+            {Capacitor.isNativePlatform() ? "Export / Share Backup" : "Export Backup"}
           </ActionButton>
           <label className="w-full min-h-12 px-2.5 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap transition-colors select-none cursor-pointer bg-stone-50 hover:bg-stone-100 active:bg-stone-200 text-stone-800 border border-stone-200 dark:bg-stone-800/90 dark:hover:bg-stone-700/90 dark:text-stone-200 dark:border-stone-700">
             <Upload className="w-4 h-4 shrink-0" />

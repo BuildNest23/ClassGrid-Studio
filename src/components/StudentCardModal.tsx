@@ -125,14 +125,15 @@ export const StudentCardModal: React.FC<Props> = ({
     setBusy(kind);
     try {
       const canvas = await getCanvas();
+      const itemTitle = `${item.name || 'Student'} - ${label}`;
       if (kind === 'img') {
-        downloadBlob(await canvasToBlob(canvas, 'image/png'), `${baseName}.png`);
-        toast('Image saved.', 'success');
+        downloadBlob(await canvasToBlob(canvas, 'image/png'), `${baseName}.png`, itemTitle);
+        toast('Image ready.', 'success');
       } else {
         const blob = await canvasToBlob(canvas, 'image/png');
-        const ok = await shareFile(blob, `${baseName}.png`, `${item.name} - ${label}`);
+        const ok = await shareFile(blob, `${baseName}.png`, itemTitle);
         if (!ok) {
-          downloadBlob(blob, `${baseName}.png`);
+          downloadBlob(blob, `${baseName}.png`, itemTitle);
           toast('Sharing is not available here, so the image was saved instead.', 'info');
         }
       }
@@ -150,17 +151,17 @@ export const StudentCardModal: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-5 bg-black/60 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-5 pt-[max(1.25rem,calc(var(--safe-top,env(safe-area-inset-top,0px))+0.75rem))] pb-[max(1.25rem,calc(var(--safe-bottom,env(safe-area-inset-bottom,0px))+0.75rem))] bg-black/60 backdrop-blur-xs"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl max-h-[96vh] flex flex-col bg-white dark:bg-stone-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden"
+        className="w-full max-w-xl max-h-[calc(100dvh-var(--safe-top,env(safe-area-inset-top,0px))-var(--safe-bottom,env(safe-area-inset-bottom,0px))-2.5rem)] flex flex-col bg-white dark:bg-stone-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden"
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-label={label}
       >
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-stone-200 dark:border-stone-800">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-stone-200 dark:border-stone-800 shrink-0">
           <div className="min-w-0">
             <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100 truncate">{item.name || 'Student'}</h2>
             <p className="text-[11px] text-stone-500 dark:text-stone-400">
@@ -222,7 +223,7 @@ export const StudentCardModal: React.FC<Props> = ({
         </div>
 
         {/* Actions: icons only */}
-        <div className="flex items-center justify-center gap-5 px-4 py-3 border-t border-stone-200 dark:border-stone-800">
+        <div className="flex items-center justify-center gap-5 px-4 py-3 border-t border-stone-200 dark:border-stone-800 shrink-0">
           <button type="button" className={iconBtn} onClick={handlePrint} disabled={!!busy} title="Print" aria-label="Print">
             <Printer className="w-5 h-5" />
           </button>
