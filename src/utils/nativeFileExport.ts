@@ -23,11 +23,23 @@ export async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 /**
- * Sanitizes file names to remove filesystem-illegal characters.
+ * Sanitizes file names to remove filesystem-illegal characters and replace
+ * spaces/brackets with clean hyphens for reliable Android FileProvider URIs.
  */
 export function sanitizeFileName(name: string, fallback = 'export-file'): string {
-  const cleaned = name.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return cleaned.length > 0 ? cleaned.slice(0, 100) : fallback;
+  const dotIndex = name.lastIndexOf('.');
+  const ext = dotIndex !== -1 ? name.slice(dotIndex).toLowerCase() : '';
+  const base = dotIndex !== -1 ? name.slice(0, dotIndex) : name;
+
+  const cleanedBase = base
+    .trim()
+    .replace(/[\\/:*?"<>|()[\]{}+,=;@!#%&^]/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  const finalName = (cleanedBase.length > 0 ? cleanedBase.slice(0, 80) : fallback) + ext;
+  return finalName;
 }
 
 export interface ExportFileOptions {

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { X, ChevronLeft, ChevronRight, Printer, Image as ImageIcon, Share2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useClassroom } from '../context/ClassroomContext';
 import { PrintSizeKey } from '../types';
+import { Capacitor } from '@capacitor/core';
 import { triggerPrint } from '../utils/printEngine';
 import {
   CARD_W_PX,
@@ -126,15 +127,19 @@ export const StudentCardModal: React.FC<Props> = ({
     try {
       const canvas = await getCanvas();
       const itemTitle = `${item.name || 'Student'} - ${label}`;
+      const blob = await canvasToBlob(canvas, 'image/png');
       if (kind === 'img') {
-        downloadBlob(await canvasToBlob(canvas, 'image/png'), `${baseName}.png`, itemTitle);
-        toast('Image ready.', 'success');
+        const ok = await downloadBlob(blob, `${baseName}.png`, itemTitle);
+        if (ok) {
+          toast(Capacitor.isNativePlatform() ? 'Card ready in Android share sheet.' : 'Image downloaded.', 'success');
+        } else {
+          toast('Failed to save image.', 'error');
+        }
       } else {
-        const blob = await canvasToBlob(canvas, 'image/png');
         const ok = await shareFile(blob, `${baseName}.png`, itemTitle);
         if (!ok) {
-          downloadBlob(blob, `${baseName}.png`, itemTitle);
-          toast('Sharing is not available here, so the image was saved instead.', 'info');
+          await downloadBlob(blob, `${baseName}.png`, itemTitle);
+          toast('Sharing not available here; image saved instead.', 'info');
         }
       }
     } catch {

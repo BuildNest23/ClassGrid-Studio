@@ -6,6 +6,7 @@ import { downloadStudentListPNG } from '../../utils/canvasExport';
 import { ActionGrid, ActionButton } from '../ActionGrid';
 import { HowItWorks } from '../HowItWorks';
 import { Printer, Download, ArrowLeft } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 export const StudentDirectoryView: React.FC = () => {
   const { data, setActiveTab, toast, buildPrintHeaderHTML } = useClassroom();
@@ -55,8 +56,11 @@ export const StudentDirectoryView: React.FC = () => {
     setDownloading(true);
     try {
       const ok = await downloadStudentListPNG(data);
-      if (ok) toast("Student list image downloaded.", "success");
-      else toast("Failed to create image.", "error");
+      if (ok) {
+        toast(Capacitor.isNativePlatform() ? "Student list ready in Android share sheet." : "Student list image downloaded.", "success");
+      } else {
+        toast("Failed to create image.", "error");
+      }
     } finally {
       setDownloading(false);
     }

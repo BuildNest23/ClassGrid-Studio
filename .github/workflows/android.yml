@@ -31,9 +31,11 @@ jobs:
           if [ ! -d android ]; then npx cap add android; fi
           npx cap sync android
 
-      - name: Apply ClassGrid launcher icons and splash screens
+      - name: Apply ClassGrid launcher icons, splash screens, and status bar configuration
         run: |
           cp -r android-res/res/* android/app/src/main/res/
+          mkdir -p android/app/src/main/java/com/classgrid/app
+          cp android-res/MainActivity.java android/app/src/main/java/com/classgrid/app/MainActivity.java
 
       - name: Build debug APK
         working-directory: android

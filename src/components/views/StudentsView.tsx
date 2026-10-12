@@ -60,10 +60,11 @@ export const StudentsView: React.FC = () => {
     setShowOptional(false);
   };
 
-  const syncRollNumbers = (list: Student[]) => {
-    list.forEach((s, idx) => {
-      s.rollNo = String(idx + 1).padStart(2, "0");
-    });
+  const syncRollNumbers = (list: Student[]): Student[] => {
+    return list.map((s, idx) => ({
+      ...s,
+      rollNo: String(idx + 1).padStart(2, "0")
+    }));
   };
 
   const handleSaveStudent = (e: React.FormEvent) => {
@@ -136,8 +137,8 @@ export const StudentsView: React.FC = () => {
       const temp = nextList[idx];
       nextList[idx] = nextList[newIdx];
       nextList[newIdx] = temp;
-      syncRollNumbers(nextList);
-      return { ...prev, students: nextList };
+      const synced = syncRollNumbers(nextList);
+      return { ...prev, students: synced };
     });
     toast("Student moved.", "info");
   };
@@ -157,7 +158,7 @@ export const StudentsView: React.FC = () => {
 
     saveData(prev => {
       const nextStudents = prev.students.filter(x => x.id !== s.id);
-      syncRollNumbers(nextStudents);
+      const synced = syncRollNumbers(nextStudents);
 
       const nextAtt = { ...prev.attendance };
       Object.keys(nextAtt).forEach(k => {

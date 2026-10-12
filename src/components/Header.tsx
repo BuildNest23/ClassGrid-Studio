@@ -111,7 +111,10 @@ export const Header: React.FC<HeaderProps> = ({ activeViewTitle }) => {
     : 'Classroom Administration';
 
   return (
-    <header className={`sticky top-0 z-30 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 pt-safe transition-[transform,background-color,border-color] duration-250 ${hiddenOnScroll ? '-translate-y-full' : 'translate-y-0'}`}>
+    <header
+      style={{ top: 'var(--safe-top, env(safe-area-inset-top, 0px))' }}
+      className={`sticky z-30 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 transition-[transform,background-color,border-color] duration-250 ${hiddenOnScroll ? '-translate-y-full' : 'translate-y-0'}`}
+    >
       <div className="flex items-center justify-between gap-3 px-3.5 sm:px-6 h-14 max-w-7xl mx-auto">
         {/* Brand Lockup */}
         <div className="flex items-center gap-2.5 min-w-0">

@@ -145,10 +145,10 @@ export function safeFileName(s: string): string {
   return s.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Result';
 }
 
-export function downloadBlob(blob: Blob, filename: string, title?: string) {
+export async function downloadBlob(blob: Blob, filename: string, title?: string): Promise<boolean> {
   // If run in native Capacitor, exportImageBlob automatically writes to cache and opens the share sheet.
   // On desktop / web browser, it performs standard URL.createObjectURL anchor download.
-  exportImageBlob(blob, filename, title);
+  return await exportImageBlob(blob, filename, title);
 }
 
 /** Opens the native share sheet with the file on Android/iOS; attempts Web Share on mobile web; downloads on desktop */

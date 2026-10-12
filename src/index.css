@@ -38,9 +38,9 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* Capacitor Android native app environment: respect system safe areas with native status bar */
+/* Capacitor Android native app environment: guarantee solid crimson bar across status bar & camera notch */
 html.is-android-native {
-  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-top: max(env(safe-area-inset-top, 0px), 32px);
 }
 
 .pb-safe {

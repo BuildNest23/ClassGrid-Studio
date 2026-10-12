@@ -15,6 +15,7 @@ import {
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
 import { downloadAbsenteeSlipPNG } from '../../utils/canvasExport';
+import { Capacitor } from '@capacitor/core';
 import {
   Check,
   RotateCcw,
@@ -455,8 +456,11 @@ export const AttendanceView: React.FC = () => {
     setSavingSlipImage(true);
     try {
       const ok = await downloadAbsenteeSlipPNG(key, data);
-      if (ok) toast("Absentee slip saved as image.", "success");
-      else toast("Could not generate image.", "error");
+      if (ok) {
+        toast(Capacitor.isNativePlatform() ? "Absentee slip ready in Android share sheet." : "Absentee slip saved as image.", "success");
+      } else {
+        toast("Could not generate image.", "error");
+      }
     } finally {
       setSavingSlipImage(false);
     }

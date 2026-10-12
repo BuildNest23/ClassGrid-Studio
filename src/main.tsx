@@ -10,8 +10,8 @@ if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
   if (Capacitor.getPlatform() === 'android') {
     document.documentElement.classList.add('is-android-native');
     try {
-      // Keep system status bar as a dedicated native crimson red strip above the webview
-      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+      // Solid crimson red status bar across camera notch and top
+      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
       StatusBar.setBackgroundColor({ color: '#991B1B' }).catch(() => {});
       StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
     } catch {

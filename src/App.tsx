@@ -56,6 +56,18 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="app-root min-h-screen flex flex-col bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100 transition-colors duration-200">
+      {/* Solid Crimson Red Status Bar Strip across Camera Notch & Status Bar */}
+      <div
+        id="top-status-strip"
+        className="sticky top-0 left-0 right-0 z-50 w-full bg-[#991B1B] shrink-0 select-none pointer-events-none transition-colors duration-200"
+        style={{ height: 'var(--safe-top, env(safe-area-inset-top, 0px))' }}
+        aria-hidden="true"
+      />
+      <div
+        className="fixed top-0 left-0 right-0 z-40 bg-[#991B1B] pointer-events-none"
+        style={{ height: 'var(--safe-top, env(safe-area-inset-top, 0px))' }}
+        aria-hidden="true"
+      />
       <Header activeViewTitle={TAB_TITLES[activeTab]} />
       <Navigation />
 
