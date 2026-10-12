@@ -48,16 +48,32 @@ html,body{margin:0;padding:0;background:#fff;}
 </style></head><body><div class="cg-page">${cardHTML}</div></body></html>`;
 }
 
+export const RECEIPT_PAGE_W_PX = 380; // narrow page used for fee receipts (receipt is 90 mm = about 340 px)
+
+/** Narrow page that fits its content (fee receipts). Height is measured after it loads. */
+export function buildReceiptPageHTML(cardHTML: string): string {
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;padding:0;background:#fff;}
+.cg-page{width:${RECEIPT_PAGE_W_PX}px;box-sizing:border-box;padding:16px 0;background:#fff;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+</style></head><body><div class="cg-page">${cardHTML}</div></body></html>`;
+}
+
 /** Draws the page shown in an iframe into a canvas (2x for sharp text). */
-export async function renderCardCanvas(doc: Document, scale = 2): Promise<HTMLCanvasElement> {
+export async function renderCardCanvas(
+  doc: Document,
+  scale = 2,
+  width = CARD_W_PX,
+  height = CARD_H_PX
+): Promise<HTMLCanvasElement> {
   const ser = new XMLSerializer();
   const styles = Array.from(doc.querySelectorAll('style')).map(s => ser.serializeToString(s)).join('');
   const page = doc.querySelector('.cg-page');
   if (!page) throw new Error('card page not ready');
   const body = ser.serializeToString(page);
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_W_PX}" height="${CARD_H_PX}" viewBox="0 0 ${CARD_W_PX} ${CARD_H_PX}">` +
-    `<foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${CARD_W_PX}px;height:${CARD_H_PX}px;background:#fff">${styles}${body}</div></foreignObject></svg>`;
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    `<foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:#fff">${styles}${body}</div></foreignObject></svg>`;
 
   const img = new window.Image();
   img.decoding = 'sync';
@@ -68,8 +84,8 @@ export async function renderCardCanvas(doc: Document, scale = 2): Promise<HTMLCa
   });
 
   const canvas = document.createElement('canvas');
-  canvas.width = CARD_W_PX * scale;
-  canvas.height = CARD_H_PX * scale;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('no canvas');
   ctx.fillStyle = '#ffffff';
