@@ -247,7 +247,7 @@ export function buildClassResultHTML(
 // Report-card rows shrink automatically as subjects are added so a card always fits on one page.
 // The size is planned for the shortest common paper (US Letter, ~255 mm of printable height).
 // Numbers below were measured from real renders of the card.
-const CARD_TARGET_MM = 249;
+const CARD_TARGET_MM = 244; // leaves ~11 mm spare on Letter for font differences between devices
 function cardDensity(c: ResultPrintCtx, mult: number): { pad: number; fs: number; remH: number; ok: boolean } {
   const n = Math.max(1, c.asmt.subjects.length);
   const isA = c.style === 'a';
@@ -284,7 +284,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx): string {
   const { asmt, data, ranked } = c;
   const passPct = Number(asmt.passPercent) || 40;
   const total = ranked.length;
-  const dens = cardFit(c);
+  const dens = { ...cardFit(c), maxRowsMm: asmt.subjects.length * 14 + 14 };
   const cardVars = `--mult:${dens.scale};--rc-pad:${dens.pad}mm;--rc-fs:${dens.fs}pt;--rc-remh:${dens.remH}mm`;
 
   return ranked
@@ -343,7 +343,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx): string {
         <div class="ps2-cardframe">
           ${headerHTML(c, 'Student Report Card')}
           ${idBlock}
-          <table class="ps2-table ps2-subtable">
+          <div class="ps2-rows" style="max-height:${dens.maxRowsMm}mm"><table class="ps2-table ps2-subtable">
             <thead><tr>
               <th class="left" style="width:40%">Subject</th>
               <th style="width:15%">Max</th>
@@ -351,7 +351,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx): string {
               <th style="width:25%">Percentage</th>
             </tr></thead>
             <tbody>${subRows}</tbody>
-          </table>
+          </table></div>
           <div class="ps2-summary">
             <div><label>Total</label><b>${r.total}<small> / ${c.totalMax}</small></b></div>
             <div><label>Percentage</label><b>${hasMarks(r) ? fmtPct(r.pct) : '—'}</b></div>
