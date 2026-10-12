@@ -247,3 +247,42 @@ export function planResultPrintLayout(
   }
   return last;
 }
+
+/**
+ * Column-wise grid navigation for mark/amount entry.
+ * - Enter (or the phone keyboard's action key) jumps to the next enabled box in the SAME column.
+ * - Shift+Enter goes up. At the end of a column it moves on to the top of the next column.
+ * Pair with gridTabIndex() so the phone keyboard's "Next" arrow also goes down the column.
+ */
+export function gridNavKeyDown(
+  e: { key: string; shiftKey: boolean; preventDefault: () => void },
+  attr: string,
+  row: number,
+  col: number,
+  rows: number,
+  cols: number = 1
+) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const step = e.shiftKey ? -1 : 1;
+  let r = row + step;
+  let c = col;
+  for (let guard = 0; guard < rows * cols + 2; guard++) {
+    if (r >= rows) { r = 0; c++; }
+    else if (r < 0) { r = rows - 1; c--; }
+    if (c < 0 || c >= cols) break;
+    const el = document.querySelector<HTMLInputElement>(`input[${attr}="${r}_${c}"]`);
+    if (el && !el.disabled) {
+      el.focus();
+      try { el.select(); } catch { /* number inputs may not support select */ }
+      return;
+    }
+    r += step;
+  }
+  (document.activeElement as HTMLElement | null)?.blur?.();
+}
+
+/** Tab order that runs down each column first (used by the mobile keyboard "Next" key). */
+export function gridTabIndex(row: number, col: number, rows: number): number {
+  return Math.min(32000, col * rows + row + 1);
+}
