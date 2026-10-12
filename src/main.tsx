@@ -1,14 +1,21 @@
 import { createRoot } from 'react-dom/client';
 import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import App from './App.tsx';
 import './index.css';
 
-// Tag native Capacitor runtime for Android / iOS notch and status-bar safe-area insets
-if (typeof window !== 'undefined') {
-  if (Capacitor.isNativePlatform()) {
-    document.documentElement.classList.add('is-native-app');
-    if (Capacitor.getPlatform() === 'android') {
-      document.documentElement.classList.add('is-android-native');
+// Tag native Capacitor runtime and configure native Android status bar
+if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+  document.documentElement.classList.add('is-native-app');
+  if (Capacitor.getPlatform() === 'android') {
+    document.documentElement.classList.add('is-android-native');
+    try {
+      // Keep system status bar as a dedicated native crimson red strip above the webview
+      StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+      StatusBar.setBackgroundColor({ color: '#991B1B' }).catch(() => {});
+      StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    } catch {
+      /* safe fallback if plugin is unavailable */
     }
   }
 }

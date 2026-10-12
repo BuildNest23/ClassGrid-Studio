@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for Android app launcher icon replacement and splash screen configuration. Generates high-resolution Android launcher mipmap icons (standard, round, and adaptive foreground) from the current ClassGrid icon-512.png, configures a branded launch splash screen, and updates the GitHub Actions workflow to apply the custom assets when generating the APK.",
-  "updatedAt": "2026-10-12T18:48:58.943780889Z",
+  "summary": "Implementation plan to configure the native Android status bar with the authentic ClassGrid crimson red (#991B1B) strip across both light and dark modes in Capacitor APK builds, matching the WebAPK presentation. Includes Android native styles (styles.xml, colors.xml) and @capacitor/status-bar runtime configuration with light icons.",
+  "updatedAt": "2026-10-12T19:04:43.270636342Z",
   "requestFeedback": true,
   "userFacing": true
 }

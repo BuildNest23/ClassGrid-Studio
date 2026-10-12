@@ -38,9 +38,9 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
-/* Capacitor Android native app environment: guarantee notch & camera hole clearance */
+/* Capacitor Android native app environment: respect system safe areas with native status bar */
 html.is-android-native {
-  --safe-top: max(env(safe-area-inset-top, 0px), 32px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 .pb-safe {

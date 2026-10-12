@@ -1,45 +1,45 @@
-# Android Launcher Icon & Branded Splash Screen Implementation Plan
+# Native Android Crimson Status Bar Implementation Plan
 
-Configure the Android application to build with the authentic ClassGrid branding icon (`public/icons/icon-512.png`) instead of the default Capacitor template icon, and add a matching branded splash screen for GitHub Actions APK builds.
+Configure the Capacitor Android application to display the native crimson red (`#991B1B`) status bar strip with light system indicators across both light and dark modes, perfectly matching the WebAPK / PWA visual experience shown in your reference screenshot.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The clarifying questions have been confirmed by the user. The plan will use the official ClassGrid app icon and generate both launcher icons and a branded splash screen.
+> Clarifying questions were confirmed by the user.
 
-- **Confirmed Decision 1**: Use the current ClassGrid app icon (`public/icons/icon-512.png`) as the official Android launcher icon across all screen densities.
-- **Confirmed Decision 2**: Include both standard/adaptive launcher icons and a matching branded splash screen matching the theme (`#991B1B` crimson with centered emblem).
-- **Technical Mechanism**: Because GitHub Actions creates the `android/` directory dynamically via `npx cap add android`, default Capacitor placeholder icons are generated unless replaced. We will supply pre-rendered Android resource directories (`android-res/res/`) and an automated sync hook in `package.json` and `.github/workflows/android.yml` to inject the icons into `android/app/src/main/res/` prior to `assembleDebug`.
+- **Confirmed Decision 1**: Apply the top red strip as the native Android system status bar set to `#991B1B` (crimson red), matching the WebAPK reference in Screenshot 2.
+- **Confirmed Decision 2**: Keep the crimson red status bar consistent across both light and dark modes for stable brand identity.
+- **System Indicator Styling**: System icons (clock, Wi-Fi, battery) will be rendered in light/white (`Style.Dark` in Capacitor StatusBar / `windowLightStatusBar: false` in Android XML) to ensure crisp high-contrast readability against `#991B1B`.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Replaces the generic blue Capacitor shield launcher icon on installed Android APKs with the real ClassGrid identity (crimson shield emblem), providing full adaptive icon support (square, circular, and squircle) on Android 8 through 15+, and displays a clean splash screen during initial webview load.
-- **Target Audience**: Teachers and school administrators installing the ClassGrid APK built from GitHub Actions releases.
-- **Key Value**: The installed Android app displays the real brand identity on the home screen, app drawer, and system settings, ensuring professional presentation and brand recognition.
+- **What It Does**: In the Capacitor Android APK, configures the Android window status bar to be a dedicated, non-overlapping native bar tinted with `#991B1B`, displaying white system indicators. This eliminates the white status bar void seen in Screenshot 1 and replicates the WebAPK presentation seen in Screenshot 2.
+- **Target Audience**: Teachers and administrators using the native Android app.
+- **Key Value**: Visual consistency between the WebAPK and Capacitor native APK, with polished native OS integration and high-contrast status bar indicators.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-- **Launcher Icon Visuals**:
-  - **Standard Icon (`ic_launcher.png`)**: Full-color ClassGrid crimson emblem with subtle inner shadow on transparent background for legacy Android launchers.
-  - **Round Icon (`ic_launcher_round.png`)**: Circular formatted version for Google Pixel, Samsung One UI, and launchers enforcing circular masks.
-  - **Adaptive Foreground (`ic_launcher_foreground.png`)**: 108dp-canvas foreground emblem paired with adaptive background (`ic_launcher_background.xml`), allowing Android's adaptive icon engine to apply user-customized squircle/teardrop/circle masks seamlessly.
-- **Splash Screen Visuals**:
-  - Centered high-resolution ClassGrid logo against the official brand background color `#991B1B` (or system theme surface), eliminating the white flash on native Android app startup.
+- **Status Bar Appearance**:
+  - **Background**: Solid `#991B1B` (ClassGrid brand crimson).
+  - **System Icons**: Pure white / light icons (`android:windowLightStatusBar = false`) for high-contrast visibility.
+  - **Dark Mode**: Retains `#991B1B` crimson strip, providing a cohesive brand frame at the top while the rest of the app adapts to dark slate.
+- **Header Positioning**:
+  - The sticky app header (`CG ClassGrid`) starts cleanly directly below the crimson status bar without clipping or redundant padding gaps.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Pre-Generated Android Res Tree vs. Runtime NPM Asset Generator**:
-  - *Chosen Approach*: Generate and commit the exact Android `res/` tree (`mipmap-mdpi`, `mipmap-hdpi`, `mipmap-xhdpi`, `mipmap-xxhdpi`, `mipmap-xxxhdpi`, `drawable/`) directly into `android-res/res/`, accompanied by a lightweight sync script and CI step.
-  - *Why*: In GitHub Actions, relying on heavy external asset generators during CI can fail due to missing system binaries (like canvas/cairo) or network timeouts. Pre-rendered pixel-perfect assets ensure deterministic, 100% reliable builds on GitHub Actions without extra build minutes.
-- **Decision 2: Adaptive Icon Compatibility**:
-  - *Chosen Approach*: Support both legacy `ic_launcher.png` and modern Android adaptive icon definitions (`mipmap-anydpi-v26/ic_launcher.xml` referencing foreground and background color).
-  - *Why*: Modern Android (versions 8.0 through 15+) ignores standard PNGs if adaptive definitions are present or applies an ugly white background box. Complete adaptive assets guarantee crisp icons on all modern phones.
+- **Decision 1: Dual-Layer Enforcement (Native XML + Runtime Plugin)**:
+  - *Chosen Approach*: Configure both Android XML resources (`styles.xml`, `colors.xml` in `android-res/res/values`) and the `@capacitor/status-bar` runtime plugin in TypeScript.
+  - *Why*: Native XML guarantees the status bar is crimson immediately upon app launch (before JavaScript boots), while `@capacitor/status-bar` ensures persistent styling across lifecycle resumes and theme changes without flicker.
+- **Decision 2: Non-Overlaid Status Bar (`overlay: false`)**:
+  - *Chosen Approach*: Explicitly disable webview overlay mode on Android (`StatusBar.setOverlaysWebView({ overlay: false })`), letting the native OS manage status bar height.
+  - *Why*: This matches the exact behavior of Chrome WebAPK, preventing cutout collision bugs and ensuring the web header starts at standard viewport coordinates.
 
 ---
 
@@ -47,43 +47,28 @@ Configure the Android application to build with the authentic ClassGrid branding
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                 Source Asset (icon-512.png)                 │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                [Asset Generation & Packaging]
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│             Repository Assets: android-res/res/             │
-│  ├─ mipmap-mdpi/      (48px icon, 108px foreground)         │
-│  ├─ mipmap-hdpi/      (72px icon, 162px foreground)         │
-│  ├─ mipmap-xhdpi/     (96px icon, 216px foreground)         │
-│  ├─ mipmap-xxhdpi/    (144px icon, 324px foreground)        │
-│  ├─ mipmap-xxxhdpi/   (192px icon, 432px foreground)        │
-│  ├─ mipmap-anydpi-v26/ (Adaptive XML definitions)           │
-│  ├─ drawable/         (splash.png & background colors)      │
-│  └─ values/colors.xml (launcher background color token)     │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                   [GitHub Actions Workflow]
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│               android/app/src/main/res/                     │
-│  (Copied after "npx cap add android" & "cap sync android")  │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Gradle: ./gradlew assembleDebug                │
-│             ==> Output: app-debug.apk with real icon!       │
+│             Android Native OS Window Manager                │
+│    ┌───────────────────────────────────────────────────┐    │
+│    │ Status Bar (#991B1B) · White Clock, Wifi, Battery │    │
+│    └───────────────────────────────────────────────────┘    │
+│    ┌───────────────────────────────────────────────────┐    │
+│    │ Webview Container (overlay: false)                │    │
+│    │   ├─ Sticky Header (White / Dark Stone)           │    │
+│    │   ├─ Scrollable Views & Cards                     │    │
+│    │   └─ Fixed Bottom Navigation Bar                  │    │
+│    └───────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Steps to Implement:
-1. **Generate All Android Mipmap Densities**: Render pixel-perfect PNGs for mdpi (48px), hdpi (72px), xhdpi (96px), xxhdpi (144px), and xxxhdpi (192px) from `public/icons/icon-512.png` along with circular variants and adaptive foregrounds.
-2. **Setup Adaptive XML & Color Tokens**: Create `values/ic_launcher_background.xml` (or `colors.xml` with `#991B1B` / `#881337`) and `mipmap-anydpi-v26/ic_launcher.xml` / `ic_launcher_round.xml`.
-3. **Setup Splash Screen Assets**: Create `drawable/splash.png` and splash theme configs.
-4. **Update `.github/workflows/android.yml`**: Add a copy step `cp -r android-res/res/* android/app/src/main/res/` right after `npx cap sync android` and before `./gradlew assembleDebug`.
-5. **Add Local Sync Script in `package.json`**: Provide `npm run sync:android` so if someone syncs Android locally or in CI, the icons are guaranteed to be in place.
-6. **Verify Compilation & Asset Integrity**: Test build and verify that all references are valid.
+1. **Install `@capacitor/status-bar`**: Add the official plugin to package dependencies.
+2. **Configure Native Android Styles**:
+   - Create `android-res/res/values/colors.xml` declaring `colorPrimary` (`#991B1B`) and `statusBarColor` (`#991B1B`).
+   - Create `android-res/res/values/styles.xml` setting `android:statusBarColor` to `#991B1B` and `android:windowLightStatusBar` to `false`.
+   - Create `android-res/res/values-night/styles.xml` retaining `#991B1B` and `windowLightStatusBar: false` in dark mode.
+3. **Initialize StatusBar in TypeScript**:
+   - In `src/main.tsx`, call `StatusBar.setOverlaysWebView({ overlay: false })`, `StatusBar.setBackgroundColor({ color: '#991B1B' })`, and `StatusBar.setStyle({ style: Style.Dark })`.
+4. **Refine CSS Safe Areas**:
+   - Adjust `src/index.css` so that when `overlay: false` is active, no redundant extra white padding is inserted above the header.
+5. **Verify Compilation & Linting**:
+   - Ensure clean compilation with `compile_applet` and `lint_applet`.
