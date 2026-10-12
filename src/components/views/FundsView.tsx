@@ -212,7 +212,7 @@ export const FundsView: React.FC = () => {
                         )}
                       </div>
                       <div className="text-[11px] text-[#78716C] dark:text-[#A8A29E]">
-                        <b>{st.paid}</b> paid · <b>{st.partial}</b> partial · <b>{st.pend}</b> pending {st.exempt > 0 && `· <b>${st.exempt}</b> exempt`}
+                        <b>{st.paid}</b> paid · <b>{st.partial}</b> partial · <b>{st.pend}</b> pending {st.exempt > 0 && <> · <b>{st.exempt}</b> exempt</>}
                       </div>
                       {f.dueDate && (
                         <div className="text-[11px] font-medium text-[#A8A29E]">
@@ -373,7 +373,7 @@ export const FundsView: React.FC = () => {
 
     const totalLine = stats.variable
       ? `Collected: ${fmtMoney(stats.collected)} • Paid: ${stats.paid} • Pending: ${stats.pend} • Exempt: ${stats.exempt}`
-      : `Collected: ${fmtMoney(stats.collected)} • Pending: ${fmtMoney(stats.pending)} • Paid: ${stats.paid} • Partial: ${stats.partial} • Pending: ${stats.pend} • Exempt: ${stats.exempt}`;
+      : `Collected: ${fmtMoney(stats.collected)} • Outstanding: ${fmtMoney(stats.pending)} • Paid: ${stats.paid} • Partial: ${stats.partial} • Pending: ${stats.pend} • Exempt: ${stats.exempt}`;
     const amtDesc = stats.variable ? "Variable amount" : `${fmtMoney(activeFund.amount)} per student`;
 
     const namePct = getPrintNameColPct(sortedStudents.map(st => st.name || ""), 9, data.printSize, data.forceOrientation);

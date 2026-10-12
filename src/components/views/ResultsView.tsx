@@ -78,6 +78,13 @@ export const ResultsView: React.FC = () => {
   const activeAsmt = data.assessments.find(a => a.id === activeAssessmentId);
   const sortedStudents = getSortedStudents(data.students);
 
+  // Snug Name column: exact width of the longest student name (and the Average/Highest/Lowest labels).
+  // NOTE: this hook must stay ABOVE the early return below (React's rules of hooks).
+  const nameColWidth = useMemo(
+    () => getNameColWidth(sortedStudents.map(s => s.name || ""), ["Average →", "Highest →", "Lowest →"]),
+    [data.students]
+  );
+
   // 1. ASSESSMENT LIST VIEW
   if (!activeAsmt) {
     const handleCreateAsmt = (e: React.FormEvent) => {
@@ -431,8 +438,10 @@ export const ResultsView: React.FC = () => {
       } else if (/^a$/i.test(trimmed)) {
         row[subId] = 'A';
       } else {
+        // plain numbers only (no 1e3 / Infinity / negatives); rejected input re-syncs to the saved value
+        if (!/^(\d+\.?\d*|\.\d+)$/.test(trimmed)) return prev;
         const num = Number(trimmed);
-        if (isNaN(num) || num < 0) return prev; // rejected: input re-syncs to the saved value
+        if (!isFinite(num)) return prev;
         row[subId] = num;
       }
 
@@ -514,12 +523,6 @@ export const ResultsView: React.FC = () => {
       cnt
     };
   });
-
-  // Snug Name column: exact width of the longest student name (and the Average/Highest/Lowest labels)
-  const nameColWidth = useMemo(
-    () => getNameColWidth(ranked.map(item => item.s.name || ""), ["Average →", "Highest →", "Lowest →"]),
-    [ranked]
-  );
 
   const otherAsmts = data.assessments.filter(a => a.id !== activeAsmt.id);
 

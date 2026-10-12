@@ -149,6 +149,13 @@ export const AttendanceView: React.FC = () => {
     }
     saveData(prev => {
       const curDay = prev.attendance[key] || { holiday: false, locked: false, status: {} };
+      // Removing a holiday from a day with no marks clears the day completely; otherwise it would
+      // be left behind as a fake "everyone present" day (inflating attendance % and hiding the reminder).
+      if (curDay.holiday && Object.keys(curDay.status).length === 0 && !curDay.locked) {
+        const nextAtt = { ...prev.attendance };
+        delete nextAtt[key];
+        return { ...prev, attendance: nextAtt };
+      }
       return {
         ...prev,
         attendance: {
@@ -234,6 +241,10 @@ export const AttendanceView: React.FC = () => {
                 toast("Start date must be before or equal to end date.", "error");
                 return;
               }
+              if ((parseKey(endD).getTime() - parseKey(startD).getTime()) / 86400000 > 366) {
+                toast("Please choose a range of one year or less.", "error");
+                return;
+              }
               const start = parseKey(startD);
               const end = parseKey(endD);
               let count = 0;
@@ -278,9 +289,14 @@ export const AttendanceView: React.FC = () => {
     let l = 0;
     const months: Record<string, { p: number; a: number; l: number; h: number }> = {};
 
+    const joinKey = s.createdAt ? dateKey(new Date(s.createdAt)) : null;
+    const todayStr = todayKey();
     Object.keys(data.attendance).forEach(k => {
       const cur = data.attendance[k];
       if (!cur) return;
+      if (k > todayStr) return; // future days (e.g. planned holidays) are not counted
+      // same rule as the monthly register: days before the student joined do not count
+      if (!cur.holiday && cur.status[s.id] === undefined && joinKey && k < joinKey) return;
       const mk = k.slice(0, 7);
       if (!months[mk]) months[mk] = { p: 0, a: 0, l: 0, h: 0 };
       if (cur.holiday) {

@@ -203,9 +203,19 @@ export const StudentsView: React.FC = () => {
         }
       });
 
+      const nextDaily = { ...prev.dailyTests };
+      Object.keys(nextDaily).forEach(dk => {
+        if (nextDaily[dk] && nextDaily[dk][s.id] !== undefined) {
+          const row = { ...nextDaily[dk] };
+          delete row[s.id];
+          nextDaily[dk] = row;
+        }
+      });
+
       return {
         ...prev,
         students: nextStudents,
+        dailyTests: nextDaily,
         attendance: nextAtt,
         assessmentResults: nextResults,
         assessmentManualPass: nextManualPass,
