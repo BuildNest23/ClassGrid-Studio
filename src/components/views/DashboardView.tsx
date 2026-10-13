@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
+import { getStorage } from '../../storage';
 import {
   todayKey,
   prettyDate,
@@ -39,11 +40,18 @@ export const DashboardView: React.FC = () => {
   const [hideGS, setHideGS] = useState(() => localStorage.getItem("classroomHideGS") === "1");
   const [lastSavedTime, setLastSavedTime] = useState<string>("");
 
+  // Read the last-saved time from the real storage engine (SQLite on Android, local storage on web).
+  // Small delay so it runs after the debounced save has been written.
   useEffect(() => {
-    const raw = localStorage.getItem("classroomLastSaved");
-    if (raw) {
-      setLastSavedTime(timeAgo(Number(raw)));
-    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const storage = await getStorage();
+        const ts = await storage.getLastSaved();
+        if (!cancelled && ts) setLastSavedTime(timeAgo(ts));
+      } catch { /* ignore */ }
+    }, 700);
+    return () => { cancelled = true; window.clearTimeout(timer); };
   }, [data]);
 
   const dismissGS = () => {

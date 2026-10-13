@@ -28,13 +28,17 @@ import { getLastAutoBackupTimestamp } from '../../storage/autoBackup';
 const LAST_BACKUP_KEY = 'classgrid_last_backup';
 const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
 
-/** Approximate local-storage use (characters stored by this app) */
-function readStorageChars(): number {
+/**
+ * Approximate local-storage use of everything EXCEPT the main records
+ * (the records are measured separately from the live data, because on Android
+ * they live in the SQLite database, not in local storage).
+ */
+function readOtherLocalChars(): number {
   let total = 0;
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (!k) continue;
+      if (!k || k === 'classroomData') continue;
       total += k.length + (localStorage.getItem(k) || '').length;
     }
   } catch { /* ignore */ }
@@ -82,9 +86,18 @@ export const SettingsView: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
+  // Size of the real records, measured from the live data (works for SQLite and web storage)
+  const isSqlite = storageStatus?.engine === 'sqlite';
+  const recordsSize = React.useMemo(() => {
+    try {
+      const json = JSON.stringify(data);
+      return isSqlite ? new TextEncoder().encode(json).length : json.length;
+    } catch { return 0; }
+  }, [data, isSqlite]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const usedChars = React.useMemo(() => readStorageChars(), [data]);
-  const usedPct = Math.min(100, Math.round((usedChars / STORAGE_LIMIT_CHARS) * 100));
+  const otherLocal = React.useMemo(() => (isSqlite ? 0 : readOtherLocalChars()), [data, isSqlite]);
+  const usedChars = recordsSize + otherLocal;
+  const usedPct = isSqlite ? 0 : Math.min(100, Math.round((usedChars / STORAGE_LIMIT_CHARS) * 100));
   const usedLabel = usedChars < 1024 * 1024
     ? `${Math.max(1, Math.round(usedChars / 1024))} KB`
     : `${(usedChars / (1024 * 1024)).toFixed(1)} MB`;
@@ -556,26 +569,41 @@ export const SettingsView: React.FC = () => {
             </div>
           )}
 
-          <div className="flex justify-between items-baseline text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
-            <span>Storage used</span>
-            <span>{usedLabel} of about 5 MB ({usedPct}%)</span>
-          </div>
-          <div
-            className="h-2 rounded-full bg-[#E5DFD0] dark:bg-[#3A3527] overflow-hidden"
-            role="progressbar"
-            aria-valuenow={usedPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Storage used"
-          >
-            <div className={`h-full ${barColor}`} style={{ width: `${Math.max(usedPct, 1)}%` }} />
-          </div>
-          {logoKB > 200 && (
+          {storageStatus && isSqlite && (
+            <>
+              <div className="flex justify-between items-baseline text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
+                <span>Records size</span>
+                <span>{usedLabel}</span>
+              </div>
+              <p className="text-[11px] font-semibold text-[#6E6656] dark:text-[#A79B85]">
+                Stored in the phone's database. There is no 5 MB browser limit here.
+              </p>
+            </>
+          )}
+          {storageStatus && !isSqlite && (
+            <>
+              <div className="flex justify-between items-baseline text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
+                <span>Storage used</span>
+                <span>{usedLabel} of about 5 MB ({usedPct}%)</span>
+              </div>
+              <div
+                className="h-2 rounded-full bg-[#E5DFD0] dark:bg-[#3A3527] overflow-hidden"
+                role="progressbar"
+                aria-valuenow={usedPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Storage used"
+              >
+                <div className={`h-full ${barColor}`} style={{ width: `${Math.max(usedPct, 1)}%` }} />
+              </div>
+            </>
+          )}
+          {logoKB > (isSqlite ? 1000 : 200) && (
             <p className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
               Your school logo uses {logoKB} KB. A smaller logo will free up space.
             </p>
           )}
-          {usedPct >= 80 && (
+          {!isSqlite && usedPct >= 80 && (
             <p className="text-[11px] font-semibold text-red-700 dark:text-red-400">
               Storage is almost full. Export a backup now, and remove the logo if it is large.
             </p>
