@@ -198,6 +198,8 @@ const ClassroomContext = createContext<ClassroomContextType | null>(null);
 export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
   const isHydratedRef = useRef<boolean>(false);
+  const [loadError, setLoadError] = useState<boolean>(false);
+  const [loadAttempt, setLoadAttempt] = useState<number>(0);
   const [data, setData] = useState<AppData>(() => makeBaseData());
   const [activeTab, setActiveTabState] = useState<ActiveTab>(INITIAL_TAB);
   const [activeAssessmentId, setActiveAssessmentIdState] = useState<string | null>(() => {
@@ -450,25 +452,38 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
         }
       } catch (err) {
+        // IMPORTANT: do NOT continue with empty defaults here. The next save would
+        // overwrite the real (unreadable) records. Show a retry screen instead.
         console.error('[ClassroomContext] Storage initialization error:', err);
         if (isMounted) {
-          const fallback = makeBaseData();
-          dataRef.current = fallback;
-          lastSavedStateRef.current = JSON.stringify(fallback);
-          setData(fallback);
-          isHydratedRef.current = true;
-          setIsHydrated(true);
-          toast("Storage error on startup. Initialized with session defaults.", "error");
+          isHydratedRef.current = false;
+          setLoadError(true);
         }
       }
     }
 
+    setLoadError(false);
     initStorageAndLoad();
 
     return () => {
       isMounted = false;
     };
-  }, [toast]);
+  }, [toast, loadAttempt]);
+
+  // Last resort from the error screen: start with empty records (after a confirmation).
+  const startFreshAfterLoadError = useCallback(() => {
+    const ok = window.confirm(
+      'Start with empty records?\n\nThis replaces the records that could not be opened. Only do this if Retry keeps failing and you have a backup file to import.'
+    );
+    if (!ok) return;
+    const fresh = makeBaseData();
+    dataRef.current = fresh;
+    lastSavedStateRef.current = JSON.stringify(fresh);
+    setData(fresh);
+    isHydratedRef.current = true;
+    setIsHydrated(true);
+    setLoadError(false);
+  }, []);
 
   // Save with Undo tracking.
   // The updater receives a private deep copy, so it can never mutate the live state.
@@ -1076,7 +1091,29 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isHydrated
       }}
     >
-      {!isHydrated ? (
+      {!isHydrated && loadError ? (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-stone-100 dark:bg-stone-950 text-stone-800 dark:text-stone-200 p-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#991B1B] text-white flex items-center justify-center shadow-lg mb-4 text-2xl font-bold">CG</div>
+          <div className="text-lg font-bold mb-1">Could not open your records</div>
+          <p className="text-sm text-stone-600 dark:text-stone-400 max-w-xs mb-4">
+            Your data has not been deleted or changed. Tap Retry. If this keeps happening, restart the app.
+          </p>
+          <button
+            type="button"
+            onClick={() => setLoadAttempt(n => n + 1)}
+            className="px-5 py-2.5 rounded-xl bg-[#991B1B] text-white text-sm font-bold cursor-pointer"
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            onClick={startFreshAfterLoadError}
+            className="mt-3 text-xs font-semibold text-stone-500 underline cursor-pointer"
+          >
+            Start with empty records
+          </button>
+        </div>
+      ) : !isHydrated ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-stone-100 dark:bg-stone-950 text-stone-800 dark:text-stone-200 p-6 select-none">
           <div
             className="fixed top-0 left-0 right-0 z-50 bg-[#991B1B]"
