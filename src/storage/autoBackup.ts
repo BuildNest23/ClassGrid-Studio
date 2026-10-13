@@ -3,6 +3,8 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { AppData } from '../types';
 
 export const AUTO_BACKUP_TIME_KEY = 'classroomLastAutoBackup';
+const AUTO_BACKUP_ATTEMPT_KEY = 'classroomLastAutoBackupAttempt';
+const RETRY_AFTER_FAILURE_MS = 60 * 60 * 1000; // after a failed attempt, wait 1 hour before trying again
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_BACKUP_FILES = 5;
 
@@ -38,9 +40,16 @@ export async function maybeTriggerAutoBackup(data: AppData): Promise<void> {
     }
 
     if (!Capacitor.isNativePlatform()) {
-      // On web browsers without native filesystem access, record timestamp and return safely
+      // Browsers have no folder access for silent backups
       return;
     }
+
+    // Do not retry a failed backup on every save (each try serializes all records)
+    try {
+      const lastAttempt = parseInt(window.localStorage.getItem(AUTO_BACKUP_ATTEMPT_KEY) || '0', 10);
+      if (lastAttempt && now - lastAttempt < RETRY_AFTER_FAILURE_MS) return;
+      window.localStorage.setItem(AUTO_BACKUP_ATTEMPT_KEY, String(now));
+    } catch { /* ignore */ }
 
     const timestampStr = new Date(now).toISOString().replace(/[:.]/g, '-');
     const finalFileName = `classgrid-autobackup-${timestampStr}.json`;
@@ -65,6 +74,7 @@ export async function maybeTriggerAutoBackup(data: AppData): Promise<void> {
     // 3. Update last backup timestamp
     try {
       window.localStorage.setItem(AUTO_BACKUP_TIME_KEY, now.toString());
+      window.localStorage.removeItem(AUTO_BACKUP_ATTEMPT_KEY);
     } catch {
       // ignore localStorage quota errors
     }
