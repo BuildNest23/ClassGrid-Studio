@@ -48,10 +48,8 @@ export const ResultsView: React.FC = () => {
     uiPrompt,
     activeAssessmentId,
     setActiveAssessmentId,
-    calcAssessmentResult,
     computeAssessmentRanking,
-    assessmentEntryCount,
-    buildPrintHeaderHTML
+    assessmentEntryCount
   } = useClassroom();
 
   const [newFormOpen, setNewFormOpen] = useState(false);

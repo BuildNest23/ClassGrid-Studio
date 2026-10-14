@@ -215,7 +215,7 @@ export const StudentsView: React.FC = () => {
 
       return {
         ...prev,
-        students: nextStudents,
+        students: synced,
         dailyTests: nextDaily,
         attendance: nextAtt,
         assessmentResults: nextResults,
