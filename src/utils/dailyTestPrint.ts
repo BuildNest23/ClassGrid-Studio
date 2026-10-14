@@ -103,7 +103,6 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
     }
   }
 
-  const totalChunks = studentChunks.length;
   let allPage1SheetsHTML = '';
 
   studentChunks.forEach((chunk, chunkIdx) => {

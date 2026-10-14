@@ -1,5 +1,5 @@
 import { AppData, Assessment, Student } from '../types';
-import { esc, ordinal, PRINT_SIZES, fmtMoney, prettyShortDate } from './helpers';
+import { esc, ordinal, PRINT_SIZES } from './helpers';
 import { WatermarkSettings, loadWatermark, watermarkActive, watermarkHTML } from './logoWatermark';
 
 export type ResultPrintStyle = 'a' | 'b';
