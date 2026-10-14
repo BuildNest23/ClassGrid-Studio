@@ -294,7 +294,7 @@ export const DailyTestView: React.FC = () => {
   };
 
   // Quick Action 3: Print Register for selected month
-  const handlePrintRegister = () => {
+  const handlePrintRegister = async () => {
     if (sortedStudents.length === 0) {
       toast('No students in class. Add students before printing register.', 'error');
       return;
@@ -304,18 +304,20 @@ export const DailyTestView: React.FC = () => {
       isBlank: false,
       header: headerOpts
     });
-    triggerPrint(html, 'landscape', data.printSize, data.forceOrientation);
+    const ok = await triggerPrint(html, 'landscape', data.printSize, data.forceOrientation);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   // Quick Action 4: Print Blank Register
-  const handlePrintBlankRegister = () => {
+  const handlePrintBlankRegister = async () => {
     const html = generateDailyTestRegisterHTML(data, {
       monthKey: selectedMonth,
       isBlank: true,
       blankWithNames: printOpts.blankWithNames && sortedStudents.length > 0,
       header: headerOpts
     });
-    triggerPrint(html, 'landscape', data.printSize, data.forceOrientation);
+    const ok = await triggerPrint(html, 'landscape', data.printSize, data.forceOrientation);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   if (sortedStudents.length === 0) {

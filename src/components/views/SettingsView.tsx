@@ -136,31 +136,54 @@ export const SettingsView: React.FC = () => {
     toast("Classroom setup saved.", "success");
   };
 
+  // Shrinks the picked image (longest side max 300 px) so the logo stays small in storage, undo history, backups and prints.
+  const shrinkLogo = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const MAX = 300;
+          const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('no canvas');
+          const keepAlpha = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/gif' || file.type === 'image/svg+xml';
+          if (!keepAlpha) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, w, h);
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(keepAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.85));
+        } catch (err) {
+          reject(err);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Could not read image'));
+      };
+      img.src = url;
+    });
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
-
-    if (file.size > 500 * 1024) {
-      const ok = await uiConfirm(
-        `This image is ${Math.round(file.size / 1024)} KB. Large images may exceed local storage quotas.\n\nContinue anyway?`,
-        { title: "Large Logo", yesText: "Continue", icon: "warning" }
-      );
-      if (!ok) {
-        e.target.value = "";
-        return;
-      }
+    try {
+      const result = await shrinkLogo(file);
+      saveData(prev => ({ ...prev, schoolLogo: result }));
+      toast(`School logo uploaded (${Math.max(1, Math.round(result.length / 1024))} KB).`, "success");
+    } catch {
+      toast("Could not read this image. Try a PNG or JPG.", "error");
     }
-
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const result = ev.target?.result as string;
-      if (result) {
-        saveData(prev => ({ ...prev, schoolLogo: result }));
-        toast("School logo uploaded.", "success");
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    input.value = "";
   };
 
   const handleRemoveLogo = async () => {

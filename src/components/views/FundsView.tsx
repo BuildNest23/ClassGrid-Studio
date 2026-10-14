@@ -464,7 +464,8 @@ export const FundsView: React.FC = () => {
       ${bodyHTML}
     </div>`;
 
-    triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    const ok = await triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   return (

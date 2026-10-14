@@ -13,7 +13,7 @@ export const StudentDirectoryView: React.FC = () => {
   const [downloading, setDownloading] = useState(false);
   const sortedStudents = getSortedStudents(data.students);
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const rows = sortedStudents.map((s, i) => `
       <tr>
         <td class="center font-bold">${i + 1}</td>
@@ -45,7 +45,8 @@ export const StudentDirectoryView: React.FC = () => {
       </table>
     </div>`;
 
-    triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    const ok = await triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   const handleDownloadPNG = async () => {
