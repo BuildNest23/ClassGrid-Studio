@@ -56,11 +56,21 @@ export async function maybeTriggerAutoBackup(data: AppData): Promise<void> {
     const tempFileName = `classgrid-autobackup-temp-${now}.tmp`;
     const jsonString = JSON.stringify(data, null, 2);
 
+    // App-specific folders need no storage permission (Documents is blocked on Android 10+).
+    // Try the external app folder first, then the internal data folder.
+    let backupDir: Directory = Directory.External;
+    try {
+      await Filesystem.writeFile({ path: tempFileName, data: jsonString, directory: backupDir, encoding: Encoding.UTF8 });
+      await Filesystem.deleteFile({ path: tempFileName, directory: backupDir });
+    } catch {
+      backupDir = Directory.Data;
+    }
+
     // 1. Write to temporary file
     await Filesystem.writeFile({
       path: tempFileName,
       data: jsonString,
-      directory: Directory.Documents,
+      directory: backupDir,
       encoding: Encoding.UTF8,
     });
 
@@ -68,7 +78,7 @@ export async function maybeTriggerAutoBackup(data: AppData): Promise<void> {
     await Filesystem.rename({
       from: tempFileName,
       to: finalFileName,
-      directory: Directory.Documents,
+      directory: backupDir,
     });
 
     // 3. Update last backup timestamp
@@ -83,7 +93,7 @@ export async function maybeTriggerAutoBackup(data: AppData): Promise<void> {
     try {
       const dirResult = await Filesystem.readdir({
         path: '',
-        directory: Directory.Documents,
+        directory: backupDir,
       });
 
       const backupFiles = (dirResult.files || [])
@@ -97,7 +107,7 @@ export async function maybeTriggerAutoBackup(data: AppData): Promise<void> {
           try {
             await Filesystem.deleteFile({
               path: oldFile,
-              directory: Directory.Documents,
+              directory: backupDir,
             });
           } catch (delErr) {
             console.warn(`[AutoBackup] Could not delete old backup ${oldFile}:`, delErr);

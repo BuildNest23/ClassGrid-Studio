@@ -71,14 +71,34 @@ export class SqliteStorage implements StorageAdapter {
       const isAlreadyMigrated = flagRes.values && flagRes.values.length > 0 && flagRes.values[0]?.value === '1';
 
       if (isAlreadyMigrated) {
-        // Migration was completed in an earlier session.
-        // We can now safely clean up the old localStorage copy on this subsequent launch.
+        // Migration was completed earlier. The localStorage copy may only be removed when SQLite
+        // holds data that is at least as new. If a fallback session saved NEWER data into localStorage
+        // (SQLite was unavailable at that time), copy it into SQLite first instead of throwing it away.
         try {
           const rawLocal = window.localStorage.getItem(PRIMARY_KEY);
           if (rawLocal) {
-            window.localStorage.removeItem(PRIMARY_KEY);
-            window.localStorage.removeItem('classroomLastSaved');
-            console.log('[SqliteStorage] Cleaned up obsolete localStorage copy on subsequent launch.');
+            const localTs = parseInt(window.localStorage.getItem('classroomLastSaved') || '0', 10) || 0;
+            const tsRes = await this.db.query(
+              'SELECT updated_at FROM app_state WHERE key = ? LIMIT 1;',
+              [PRIMARY_KEY]
+            );
+            const sqliteTs = Number(tsRes.values?.[0]?.updated_at) || 0;
+
+            if (localTs > sqliteTs) {
+              const parsedLocal = JSON.parse(rawLocal);
+              if (parsedLocal && typeof parsedLocal === 'object') {
+                await this.db.run(
+                  'INSERT OR REPLACE INTO app_state (key, value, updated_at) VALUES (?, ?, ?);',
+                  [PRIMARY_KEY, rawLocal, Date.now()]
+                );
+                console.log('[SqliteStorage] Newer fallback data found in localStorage and copied into SQLite.');
+              }
+              // Keep the localStorage copy for now; it is removed on a later launch once SQLite is newer.
+            } else {
+              window.localStorage.removeItem(PRIMARY_KEY);
+              window.localStorage.removeItem('classroomLastSaved');
+              console.log('[SqliteStorage] Cleaned up obsolete localStorage copy on subsequent launch.');
+            }
           }
         } catch (e) {
           console.warn('[SqliteStorage] Note: error checking/clearing localStorage:', e);
