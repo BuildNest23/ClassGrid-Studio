@@ -158,9 +158,9 @@ export const TBL_SIZES = [
 
 // Exact rendered text width in pixels (offscreen canvas, created once and reused).
 let _measureCtx: CanvasRenderingContext2D | null = null;
-export const TABLE_FONT_FAMILY = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+const TABLE_FONT_FAMILY = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
 
-export function getTextWidth(text: string, font: string = `600 12px ${TABLE_FONT_FAMILY}`): number {
+function getTextWidth(text: string, font: string = `600 12px ${TABLE_FONT_FAMILY}`): number {
   if (!_measureCtx) {
     const canvas = document.createElement('canvas');
     _measureCtx = canvas.getContext('2d');

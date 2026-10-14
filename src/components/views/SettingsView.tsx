@@ -16,7 +16,6 @@ import {
   X,
   Upload,
   Download,
-  RotateCcw,
   Sparkles,
   Share2
 } from 'lucide-react';

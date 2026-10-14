@@ -1,6 +1,6 @@
 import React from 'react';
 
-export interface ActionGridProps {
+interface ActionGridProps {
   children: React.ReactNode;
   /** Responsive columns on md+ screens: defaults to 2, 3, or 4 */
   cols?: 2 | 3 | 4;
@@ -31,9 +31,9 @@ export const ActionGrid: React.FC<ActionGridProps> = ({
   );
 };
 
-export type ActionButtonVariant = 'primary' | 'secondary' | 'success' | 'danger';
+type ActionButtonVariant = 'primary' | 'secondary' | 'success' | 'danger';
 
-export interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ActionButtonVariant;
   icon?: React.ComponentType<{ className?: string }>;
   /** If true, spans all columns (col-span-2 md:col-span-full). If 'mobile-only', spans 2 cols on mobile and 1 col on md+. */

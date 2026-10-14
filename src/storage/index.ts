@@ -60,6 +60,3 @@ export function isStorageFallbackActive(): boolean {
   return fallbackTriggered;
 }
 
-export function getStorageErrorMessage(): string | null {
-  return initErrorMessage;
-}

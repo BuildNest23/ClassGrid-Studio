@@ -395,6 +395,10 @@ function buildStandalonePrintHTML(
  * Master print function called by all views and components in the app.
  * Automatically delegates to @capgo/capacitor-printer when run inside Capacitor Android/iOS,
  * or standard browser window.print() on the web.
+ *
+ * Known Android limitation:
+ * The Android system print dialog ignores `@page { size }`, so previews show Letter portrait
+ * even for landscape documents. `@capgo/capacitor-printer`'s `printHtml` has no paper-size option.
  */
 export async function triggerPrint(
   contentHTML: string,
@@ -402,7 +406,7 @@ export async function triggerPrint(
   printSize: PrintSizeKey = 'm',
   forceOrientation: string = '',
   pageNumbers: boolean = false
-): Promise<void> {
+): Promise<boolean> {
   const mult = (PRINT_SIZES[printSize] || PRINT_SIZES.m).mult;
   const finalOrientation = (forceOrientation || orientation || 'portrait') as 'portrait' | 'landscape';
   const docTitle = extractDocumentTitle(contentHTML);
@@ -421,15 +425,16 @@ export async function triggerPrint(
         name: docTitle,
         html: fullHtml
       });
-      return;
+      return true;
     } catch (err) {
-      console.warn('Native Printer.printHtml failed, falling back to web print pipeline:', err);
+      console.warn('Native Printer.printHtml failed:', err);
+      return false;
     }
   }
 
   // Web Browser / Standard Desktop pipeline
   const printArea = document.getElementById('printArea');
-  if (!printArea) return;
+  if (!printArea) return false;
 
   printArea.style.setProperty('--mult', String(mult));
   printArea.innerHTML = contentHTML;
@@ -454,6 +459,7 @@ export async function triggerPrint(
       window.print();
     });
   });
+  return true;
 }
 
 /**

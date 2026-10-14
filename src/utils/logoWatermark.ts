@@ -20,14 +20,14 @@ export interface WatermarkSettings {
   receipt: WatermarkLook;
 }
 
-export const WATERMARK_KEY = 'classgridLogoWatermark';
+const WATERMARK_KEY = 'classgridLogoWatermark';
 
 export const WATERMARK_LIMITS = {
   size: { min: 30, max: 100, step: 5 },
   opacity: { min: 5, max: 40, step: 1 }
 };
 
-export const DEFAULT_WATERMARK: WatermarkSettings = {
+const DEFAULT_WATERMARK: WatermarkSettings = {
   enabled: false,
   result: { size: 65, opacity: 12 },
   receipt: { size: 60, opacity: 10 }

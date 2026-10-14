@@ -9,9 +9,9 @@ import { WatermarkSettings, loadWatermark, watermarkActive, watermarkHTML } from
 
 // ---------- saved options ----------
 
-export const RECEIPT_STYLE_KEY = 'classgridReceiptStyle';
-export const RECEIPT_THANKS_KEY = 'classgridReceiptThanks';
-export const DEFAULT_THANKS = 'Thank you. Please keep this receipt.';
+const RECEIPT_STYLE_KEY = 'classgridReceiptStyle';
+const RECEIPT_THANKS_KEY = 'classgridReceiptThanks';
+const DEFAULT_THANKS = 'Thank you. Please keep this receipt.';
 
 /** Receipt design; falls back to the design chosen for result prints the first time. */
 export function loadReceiptStyle(): ResultPrintStyle {
@@ -53,7 +53,7 @@ export function saveReceiptThanks(text: string) {
 // ---------- receipt number ----------
 
 /** Short code per fund for single-fund receipts: "Science Lab Maintenance" -> SLM, "Library" -> LIB. */
-export function fundSuffixes(data: AppData): Record<string, string> {
+function fundSuffixes(data: AppData): Record<string, string> {
   const base = data.funds.map(f => {
     const words = (f.name || '').split(/[^A-Za-z0-9]+/).filter(Boolean);
     let code: string;
@@ -92,7 +92,7 @@ export function receiptNumber(data: AppData, studentId: string, fundId: string |
 
 // ---------- data ----------
 
-export interface ReceiptCtx {
+interface ReceiptCtx {
   style: ResultPrintStyle;
   data: AppData;
   thanks: string;
@@ -112,7 +112,7 @@ interface ReceiptLine {
   date: string;
 }
 
-export function receiptLines(data: AppData, studentId: string, fundId: string | null): ReceiptLine[] {
+function receiptLines(data: AppData, studentId: string, fundId: string | null): ReceiptLine[] {
   const lines = fundLinesForStudent(data, studentId).map((l, i) => {
     const f = data.funds[i];
     const p = (data.fundPayments[f.id] || {})[studentId] || {};

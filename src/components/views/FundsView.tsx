@@ -25,8 +25,7 @@ import {
   CheckCircle2,
   Trash2,
   AlertTriangle,
-  Printer,
-  X
+  Printer
 } from 'lucide-react';
 
 export const FundsView: React.FC = () => {
@@ -366,7 +365,7 @@ export const FundsView: React.FC = () => {
   };
 
   // Print Collection Sheet
-  const handlePrintCollection = () => {
+  const handlePrintCollection = async () => {
     const rows = sortedStudents.map((s, i) => {
       const p = (data.fundPayments[activeFund.id] || {})[s.id] || {};
       const st = getFundStudentStatus(activeFund.id, s.id);
@@ -410,11 +409,12 @@ export const FundsView: React.FC = () => {
       <div style="margin-top:3mm;font-size:9.5pt;font-weight:700">${totalLine}</div>
     </div>`;
 
-    triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    const ok = await triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   // Print Pending Debtors List
-  const handlePrintPending = () => {
+  const handlePrintPending = async () => {
     const pendingRows: Array<{ s: Student; st: ReturnType<typeof getFundStudentStatus> }> = [];
     let totalPending = 0;
 

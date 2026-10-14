@@ -18,7 +18,7 @@ export interface DayAttendance {
   status: Record<string, AttendanceStatus>;
 }
 
-export interface AssessmentSubject {
+interface AssessmentSubject {
   id: string;
   name: string;
   max: number;

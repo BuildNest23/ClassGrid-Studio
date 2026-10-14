@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Student } from '../../types';
-import { newId, getSortedStudents } from '../../utils/helpers';
+import { newId } from '../../utils/helpers';
 import { HowItWorks } from '../HowItWorks';
 import {
   UserPlus,
@@ -10,7 +10,6 @@ import {
   Save,
   ArrowUp,
   ArrowDown,
-  X,
   AlertTriangle,
   GraduationCap,
   ChevronDown,

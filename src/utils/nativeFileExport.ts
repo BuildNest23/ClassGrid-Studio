@@ -5,7 +5,7 @@ import { Share } from '@capacitor/share';
 /**
  * Converts a standard Blob to base64 string (without data URL prefix).
  */
-export async function blobToBase64(blob: Blob): Promise<string> {
+async function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Failed to read file data'));
@@ -26,7 +26,7 @@ export async function blobToBase64(blob: Blob): Promise<string> {
  * Sanitizes file names to remove filesystem-illegal characters and replace
  * spaces/brackets with clean hyphens for reliable Android FileProvider URIs.
  */
-export function sanitizeFileName(name: string, fallback = 'export-file'): string {
+function sanitizeFileName(name: string, fallback = 'export-file'): string {
   const dotIndex = name.lastIndexOf('.');
   const ext = dotIndex !== -1 ? name.slice(dotIndex).toLowerCase() : '';
   const base = dotIndex !== -1 ? name.slice(0, dotIndex) : name;
@@ -42,7 +42,7 @@ export function sanitizeFileName(name: string, fallback = 'export-file'): string
   return finalName;
 }
 
-export interface ExportFileOptions {
+interface ExportFileOptions {
   title?: string;
   dialogTitle?: string;
   preferShareOnWeb?: boolean;

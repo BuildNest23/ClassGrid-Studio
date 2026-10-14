@@ -17,7 +17,7 @@ import {
   safeFileName
 } from '../utils/cardExport';
 
-export interface CardItem {
+interface CardItem {
   id: string;
   name: string;
   rollNo: string;

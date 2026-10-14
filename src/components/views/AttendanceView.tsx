@@ -28,7 +28,6 @@ import {
   BarChart2,
   GraduationCap,
   FileText,
-  AlertCircle,
   XCircle,
   CheckCircle2,
   ChevronLeft,
@@ -396,7 +395,7 @@ export const AttendanceView: React.FC = () => {
   };
 
   // Print Absentee Slip
-  const handlePrintAbsenteeSlip = () => {
+  const handlePrintAbsenteeSlip = async () => {
     const absentList = day ? sortedStudents.filter(s => day.status[s.id] === 'A') : [];
     const leaveList = day ? sortedStudents.filter(s => day.status[s.id] === 'L') : [];
 
@@ -448,7 +447,8 @@ export const AttendanceView: React.FC = () => {
       ${statsHTML}
     </div>`;
 
-    triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    const ok = await triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   // Download Absentee Slip PNG
@@ -467,7 +467,7 @@ export const AttendanceView: React.FC = () => {
   };
 
   // Print Register
-  const handlePrintRegister = () => {
+  const handlePrintRegister = async () => {
     const parts = registerMonth.split("-").map(Number);
     const days = getMonthDays(parts[0], parts[1] - 1);
     if (!sortedStudents.length) {
@@ -525,7 +525,8 @@ export const AttendanceView: React.FC = () => {
       </table>
     </div>`;
 
-    triggerPrint(fullPrintHTML, "landscape", data.printSize, data.forceOrientation);
+    const ok = await triggerPrint(fullPrintHTML, "landscape", data.printSize, data.forceOrientation);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   if (!data.students.length) {

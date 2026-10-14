@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { AppData } from '../types';
 
-export const AUTO_BACKUP_TIME_KEY = 'classroomLastAutoBackup';
+const AUTO_BACKUP_TIME_KEY = 'classroomLastAutoBackup';
 const AUTO_BACKUP_ATTEMPT_KEY = 'classroomLastAutoBackupAttempt';
 const RETRY_AFTER_FAILURE_MS = 60 * 60 * 1000; // after a failed attempt, wait 1 hour before trying again
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;

@@ -21,10 +21,7 @@ import {
   Trash2,
   Users,
   CheckCircle2,
-  XCircle,
   FileSpreadsheet,
-  AlertCircle,
-  Award,
   Sparkles
 } from 'lucide-react';
 

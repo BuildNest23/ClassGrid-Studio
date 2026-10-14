@@ -3,11 +3,7 @@ import {
   AppData,
   ActiveTab,
   Student,
-  DayAttendance,
-  AttendanceStatus,
   Assessment,
-  Fund,
-  FundPayment,
   ToastItem,
   ConfirmDialogOptions,
   PromptDialogOptions
@@ -16,7 +12,6 @@ import {
   todayKey,
   dateKey,
   getMonthDays,
-  fmtMoney,
   getSortedStudents,
   esc,
   TBL_SIZES

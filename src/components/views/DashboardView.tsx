@@ -20,8 +20,7 @@ import {
   Wallet,
   AlertTriangle,
   GraduationCap,
-  X,
-  Calendar
+  X
 } from 'lucide-react';
 
 export const DashboardView: React.FC = () => {

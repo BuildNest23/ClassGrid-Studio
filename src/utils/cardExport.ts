@@ -7,7 +7,7 @@ export const CARD_W_PX = 794;   // A4 width at 96 dpi
 export const CARD_H_PX = 1123;  // A4 height at 96 dpi
 
 /** Collects the print-only card styles from the app's own stylesheet and un-wraps them for screen use. */
-export function collectCardCss(): string {
+function collectCardCss(): string {
   const out: string[] = [];
   const wanted = (sel: string) => sel.includes('.ps2') || sel.includes('.print-sheet') || sel.includes('.report-card');
 
@@ -104,41 +104,6 @@ export function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: 
       reject(e);
     }
   });
-}
-
-/** Minimal one-page A4 PDF that holds the card as a JPEG image. */
-export async function canvasToPdfBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-  const jpg = new Uint8Array(await (await canvasToBlob(canvas, 'image/jpeg', 0.92)).arrayBuffer());
-  const W = 595.28, H = 841.89;
-  const enc = new TextEncoder();
-  const parts: Uint8Array[] = [];
-  const offsets: number[] = [];
-  let len = 0;
-  const push = (d: Uint8Array | string) => {
-    const b = typeof d === 'string' ? enc.encode(d) : d;
-    parts.push(b);
-    len += b.length;
-  };
-  const obj = (n: number, body: string) => {
-    offsets[n] = len;
-    push(`${n} 0 obj\n${body}\nendobj\n`);
-  };
-
-  push('%PDF-1.4\n');
-  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
-  obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  obj(3, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`);
-  offsets[4] = len;
-  push(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`);
-  push(jpg);
-  push('\nendstream\nendobj\n');
-  const content = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
-  obj(5, `<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
-  const xref = len;
-  let x = 'xref\n0 6\n0000000000 65535 f \n';
-  for (let i = 1; i <= 5; i++) x += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
-  push(x + `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
-  return new Blob(parts as BlobPart[], { type: 'application/pdf' });
 }
 
 export function safeFileName(s: string): string {

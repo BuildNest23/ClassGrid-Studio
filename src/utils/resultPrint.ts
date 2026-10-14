@@ -3,7 +3,7 @@ import { esc, ordinal, PRINT_SIZES, fmtMoney, prettyShortDate } from './helpers'
 import { WatermarkSettings, loadWatermark, watermarkActive, watermarkHTML } from './logoWatermark';
 
 export type ResultPrintStyle = 'a' | 'b';
-export const PRINT_STYLE_KEY = 'classroomResultPrintStyle';
+const PRINT_STYLE_KEY = 'classroomResultPrintStyle';
 
 export function loadPrintStyle(): ResultPrintStyle {
   try {
@@ -13,7 +13,7 @@ export function loadPrintStyle(): ResultPrintStyle {
   }
 }
 
-export const PRINT_FOOTER_KEY = 'classroomResultPrintFooter';
+const PRINT_FOOTER_KEY = 'classroomResultPrintFooter';
 
 export function loadPrintFooter(): string {
   try {
@@ -39,7 +39,7 @@ export function savePrintStyle(style: ResultPrintStyle) {
   }
 }
 
-export interface ResultCalc {
+interface ResultCalc {
   total: number;
   maxTotal: number;
   pct: number;
@@ -443,21 +443,13 @@ export function buildMeritListHTML(c: ResultPrintCtx): string {
 }
 
 
-// ---------- 4. Fee / Fund Statement (one student, all funds) ----------
-
-export interface FundStatementCtx {
-  style: ResultPrintStyle;
-  data: AppData;
-  footerText: string;
-}
-
 type FundCode = 'PAID' | 'PARTIAL' | 'PENDING' | 'EXEMPT';
 
 export interface FundLine {
   name: string;
-  due: number | null;      // null = no fixed amount / exempt
+  due: number | null;
   paid: number;
-  balance: number | null;  // null = not applicable
+  balance: number | null;
   code: FundCode;
   dueDate: string;
   note: string;
@@ -478,97 +470,3 @@ export function fundLinesForStudent(data: AppData, sid: string): FundLine[] {
   });
 }
 
-export function buildFundStatementHTML(c: FundStatementCtx, studentId: string): string {
-  const { data } = c;
-  const s = data.students.find(x => x.id === studentId);
-  if (!s) return '';
-  const lines = fundLinesForStudent(data, studentId);
-  const n = Math.max(1, lines.length);
-  const pad = n <= 6 ? 2.6 : n <= 10 ? 1.8 : n <= 16 ? 1.1 : 0.6;
-  const fs = n <= 8 ? 10 : n <= 14 ? 9 : 8;
-  const cardVars = `--mult:${(PRINT_SIZES[data.printSize] || PRINT_SIZES.m).mult};--rc-pad:${pad}mm;--rc-fs:${fs}pt;--rc-remh:22mm`;
-
-  const totalDue = lines.reduce((a, l) => a + (l.due || 0), 0);
-  const totalPaid = lines.reduce((a, l) => a + l.paid, 0);
-  const totalBalance = lines.reduce((a, l) => a + (l.balance || 0), 0);
-  const cleared = lines.every(l => l.code === 'PAID' || l.code === 'EXEMPT');
-
-  const tag = (code: FundCode) => {
-    if (code === 'EXEMPT') return '<span>EXEMPT</span>';
-    const cls = code === 'PAID' ? 'ps2-tag ps2-pass' : 'ps2-tag ps2-fail';
-    return `<span class="${cls}">${code}</span>`;
-  };
-
-  const rows = lines.length
-    ? lines
-        .map(
-          l => `<tr>
-            <td class="left">${esc(l.name)}${l.dueDate ? `<br><small style="font-weight:400;opacity:.7">Due ${esc(prettyShortDate(l.dueDate))}</small>` : ''}</td>
-            <td>${l.due === null ? '—' : esc(fmtMoney(l.due))}</td>
-            <td class="ps2-strong">${l.code === 'EXEMPT' ? '—' : esc(fmtMoney(l.paid))}</td>
-            <td>${l.balance === null ? '—' : esc(fmtMoney(l.balance))}</td>
-            <td>${tag(l.code)}</td>
-          </tr>`
-        )
-        .join('')
-    : `<tr><td class="left" colspan="5">No funds created yet.</td></tr>`;
-
-  let idBlock: string;
-  if (c.style === 'a') {
-    const initial = esc((s.name || '?').trim().charAt(0).toUpperCase() || '?');
-    idBlock = `<div class="ps2-idbox">
-      <div class="ps2-avatar">${initial}</div>
-      <div class="ps2-idgrid">
-        <div><label>Name</label><b>${esc(s.name || '—')}</b></div>
-        <div><label>Father Name</label><b>${esc(s.fatherName || '—')}</b></div>
-        <div><label>Roll No</label><b>${esc(s.rollNo || '—')}</b></div>
-        <div><label>Adm. No</label><b>${esc(s.admissionNo || '—')}</b></div>
-      </div>
-    </div>`;
-  } else {
-    const field = (label: string, val: string) =>
-      `<div class="ps2-field"><label>${label}</label><i></i><b>${esc(val || '—')}</b></div>`;
-    idBlock = `<div class="ps2-idrows">
-      <div class="ps2-idrow">${field('Name', s.name)}${field('Father Name', s.fatherName || '')}</div>
-      <div class="ps2-idrow">${field('Roll No', s.rollNo || '')}${field('Adm. No', s.admissionNo || '')}</div>
-    </div>`;
-  }
-
-  const notes = lines.filter(l => l.note).map(l => `${esc(l.name)}: ${esc(l.note)}`).join(' &nbsp;•&nbsp; ');
-  const fake = { style: c.style, data, asmt: { name: `As of ${prettyShortDate(todayStr())}` }, ranked: [], totalMax: 0, footerText: c.footerText } as unknown as ResultPrintCtx;
-
-  return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card" style="${cardVars}">
-    <div class="ps2-cardframe">
-      ${headerHTML(fake, 'Student Fee Statement')}
-      ${idBlock}
-      <div class="ps2-rows" style="max-height:${lines.length * 15 + 14}mm"><table class="ps2-table ps2-subtable">
-        <thead><tr>
-          <th class="left" style="width:34%">Fund</th>
-          <th style="width:18%">Amount</th>
-          <th style="width:18%">Paid</th>
-          <th style="width:16%">Balance</th>
-          <th style="width:14%">Status</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
-      <div class="ps2-summary">
-        <div><label>Total Due</label><b>${esc(fmtMoney(totalDue))}</b></div>
-        <div><label>Total Paid</label><b>${esc(fmtMoney(totalPaid))}</b></div>
-        <div><label>Balance</label><b>${esc(fmtMoney(totalBalance))}</b></div>
-        <div><label>Status</label><b class="${cleared ? 'ps2-res-pass' : 'ps2-res-fail'}">${cleared ? 'CLEARED' : 'DUE'}</b></div>
-      </div>
-      <div class="ps2-remarks">
-        <label>Notes</label>
-        <div class="ps2-remarks-text">${notes}</div>
-      </div>
-      <div class="ps2-spacer"></div>
-      ${sigHTML('Parent / Guardian')}
-      ${footerHTML(fake)}
-    </div>
-  </div>`;
-}
-
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}

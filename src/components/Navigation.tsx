@@ -12,7 +12,6 @@ import {
   Menu,
   X,
   HelpCircle,
-  LayoutGrid,
   PenTool
 } from 'lucide-react';
 

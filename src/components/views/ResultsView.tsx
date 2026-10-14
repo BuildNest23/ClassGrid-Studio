@@ -5,15 +5,13 @@ import { ResultCardModal } from '../ResultCardModal';
 import { WatermarkOptions } from '../WatermarkOptions';
 import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
-import { Assessment, Student } from '../../types';
+import { Assessment } from '../../types';
 import {
   newAssessId,
   newAssessSubId,
   ordinal,
   getSortedStudents,
-  esc,
   getNameColWidth,
-  getPrintNameColPct,
   planResultPrintLayout,
   gridNavKeyDown,
   gridTabIndex,
@@ -36,9 +34,6 @@ import {
   Copy,
   Plus,
   BarChart3,
-  CheckCircle,
-  XCircle,
-  FileText,
   X
 } from 'lucide-react';
 
@@ -554,23 +549,26 @@ export const ResultsView: React.FC = () => {
       data.printSize,
       data.forceOrientation
     );
-    triggerPrint(buildClassResultHTML(printCtx(), layout), layout.orientation, data.printSize, data.forceOrientation, true);
+    const ok = await triggerPrint(buildClassResultHTML(printCtx(), layout), layout.orientation, data.printSize, data.forceOrientation, true);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
-  const handlePrintReportCards = () => {
+  const handlePrintReportCards = async () => {
     if (!activeAsmt.subjects.length) {
       toast("Add subjects first.", "error");
       return;
     }
-    triggerPrint(buildReportCardsHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, false);
+    const ok = await triggerPrint(buildReportCardsHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, false);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
-  const handlePrintMeritList = () => {
+  const handlePrintMeritList = async () => {
     if (!activeAsmt.subjects.length) {
       toast("Add subjects first.", "error");
       return;
     }
-    triggerPrint(buildMeritListHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, true);
+    const ok = await triggerPrint(buildMeritListHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, true);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   return (

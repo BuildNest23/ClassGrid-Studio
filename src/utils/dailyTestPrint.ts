@@ -10,7 +10,7 @@ export interface DailyTestHeaderOptions {
   showMonth: boolean;
 }
 
-export interface PrintOptions {
+interface PrintOptions {
   monthKey: string; // "YYYY-MM"
   isBlank?: boolean;
   blankWithNames?: boolean; // blank register only: print student names (no marks)
