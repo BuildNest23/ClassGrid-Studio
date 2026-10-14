@@ -5,6 +5,7 @@
 import { AppData } from '../types';
 import { esc, fmtMoney, todayISO } from './helpers';
 import { fundLinesForStudent, loadPrintStyle, ResultPrintStyle } from './resultPrint';
+import { WatermarkSettings, loadWatermark, watermarkActive, watermarkHTML } from './logoWatermark';
 
 // ---------- saved options ----------
 
@@ -97,6 +98,8 @@ export interface ReceiptCtx {
   thanks: string;
   /** null = all funds, otherwise the id of the one fund to show */
   fundId: string | null;
+  /** Logo watermark settings. Left out = use the saved universal setting. */
+  watermark?: WatermarkSettings;
 }
 
 interface ReceiptLine {
@@ -250,7 +253,11 @@ export function buildFeeReceiptHTML(c: ReceiptCtx, studentId: string): string {
         .join('')
     : '<div class="fr-row"><span class="fr-sub">No funds created yet.</span></div>';
 
-  const logo = data.schoolLogo
+  const wm = c.watermark ?? loadWatermark();
+  const wmOn = watermarkActive(wm, data.schoolLogo);
+  const logo = wmOn
+    ? ''
+    : data.schoolLogo
     ? `<div class="fr-logo"><img src="${esc(data.schoolLogo)}" alt=""></div>`
     : c.style === 'a'
     ? '<div class="fr-logo">SCHOOL<br>LOGO</div>'
@@ -268,7 +275,8 @@ export function buildFeeReceiptHTML(c: ReceiptCtx, studentId: string): string {
   const stamp = paidInFull ? '<div class="fr-stampwrap"><span class="fr-stamp">PAID IN FULL</span></div>' : '';
   const thanks = (c.thanks || '').trim();
 
-  return `<div class="fr fr-${c.style}"><style>${RECEIPT_CSS}</style>
+  return `<div class="fr fr-${c.style}${wmOn ? ' cg-wm-host' : ''}"><style>${RECEIPT_CSS}</style>
+    ${wmOn ? watermarkHTML(data.schoolLogo, wm.receipt) : ''}
     <div class="fr-head">
       ${logo}
       <div class="fr-school">${esc(data.schoolName || 'School')}</div>

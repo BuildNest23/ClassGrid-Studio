@@ -1,5 +1,6 @@
 import { AppData, Assessment, Student } from '../types';
 import { esc, ordinal, PRINT_SIZES, fmtMoney, prettyShortDate } from './helpers';
+import { WatermarkSettings, loadWatermark, watermarkActive, watermarkHTML } from './logoWatermark';
 
 export type ResultPrintStyle = 'a' | 'b';
 export const PRINT_STYLE_KEY = 'classroomResultPrintStyle';
@@ -60,6 +61,8 @@ export interface ResultPrintCtx {
   ranked: RankedItem[];
   totalMax: number;
   footerText: string;
+  /** Logo watermark settings for report cards. Left out = use the saved universal setting. */
+  watermark?: WatermarkSettings;
 }
 
 // ---------- small helpers ----------
@@ -104,12 +107,15 @@ function pageClass(orientation: 'portrait' | 'landscape') {
 
 // ---------- shared pieces ----------
 
-function headerHTML(c: ResultPrintCtx, title: string): string {
+function headerHTML(c: ResultPrintCtx, title: string, noLogo = false): string {
   const d = c.data;
   const line = esc(headerLine(d));
   const note = d.printNote ? esc(d.printNote) : '';
   if (c.style === 'a') {
-    const logo = d.schoolLogo
+    // With the watermark on, the corner logo and its balancing spacer are left out so the title is centred
+    const logo = noLogo
+      ? ''
+      : d.schoolLogo
       ? `<div class="ps2-logo"><img src="${esc(d.schoolLogo)}" alt=""></div>`
       : `<div class="ps2-logo ps2-logo-empty">SCHOOL<br>LOGO</div>`;
     return `<div class="ps2-head">
@@ -118,13 +124,13 @@ function headerHTML(c: ResultPrintCtx, title: string): string {
         <h1>${esc(d.schoolName)}</h1>
         ${line ? `<div class="ps2-head-sub">${line}</div>` : ''}
       </div>
-      <div class="ps2-logo ps2-logo-spacer"></div>
+      ${noLogo ? '' : '<div class="ps2-logo ps2-logo-spacer"></div>'}
     </div>
     <div class="ps2-title-bar">${esc(title)}</div>
     <div class="ps2-title-strip">${esc(c.asmt.name)}</div>`;
   }
-  const logo = d.schoolLogo ? `<div class="ps2-logo"><img src="${esc(d.schoolLogo)}" alt=""></div>` : '';
-  const spacer = d.schoolLogo ? `<div class="ps2-logo ps2-logo-spacer"></div>` : '';
+  const logo = d.schoolLogo && !noLogo ? `<div class="ps2-logo"><img src="${esc(d.schoolLogo)}" alt=""></div>` : '';
+  const spacer = d.schoolLogo && !noLogo ? `<div class="ps2-logo ps2-logo-spacer"></div>` : '';
   return `<div class="ps2-head">
       ${logo}
       <div class="ps2-head-text">
@@ -288,6 +294,8 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
   const total = ranked.length;
   const dens = { ...cardFit(c), maxRowsMm: asmt.subjects.length * 14 + 14 };
   const cardVars = `--mult:${dens.scale};--rc-pad:${dens.pad}mm;--rc-fs:${dens.fs}pt;--rc-remh:${dens.remH}mm`;
+  const wm = c.watermark ?? loadWatermark();
+  const wmOn = watermarkActive(wm, data.schoolLogo);
 
   return ranked
     .filter(item => !onlyStudentId || item.s.id === onlyStudentId)
@@ -342,9 +350,10 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
       }
 
       const rankSuffix = c.style === 'a' && hasMarks(r) ? ` <small>of ${total}</small>` : '';
-      return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card" style="${cardVars}">
+      return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card${wmOn ? ' cg-wm-host' : ''}" style="${cardVars}">
+        ${wmOn ? watermarkHTML(data.schoolLogo, wm.result) : ''}
         <div class="ps2-cardframe">
-          ${headerHTML(c, 'Student Report Card')}
+          ${headerHTML(c, 'Student Report Card', wmOn)}
           ${idBlock}
           <div class="ps2-rows" style="max-height:${dens.maxRowsMm}mm"><table class="ps2-table ps2-subtable">
             <thead><tr>
