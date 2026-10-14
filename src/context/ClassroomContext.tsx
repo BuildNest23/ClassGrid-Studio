@@ -338,6 +338,8 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [tableSizeLevel, toast]);
 
   const cloneData = (d: AppData): AppData => JSON.parse(JSON.stringify(d));
+  // Undo/redo snapshots leave the (large) school logo out; the current logo is re-attached on restore.
+  const snapshotOf = (d: AppData): string => JSON.stringify({ ...d, schoolLogo: '' });
 
   // Drains the pending save into an ordered, serial write queue to SQLite / WebStorage
   const flushPendingToStorage = useCallback((): Promise<void> => {
@@ -437,7 +439,7 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
         if (isMounted) {
           dataRef.current = normalized;
-          lastSavedStateRef.current = JSON.stringify(normalized);
+          lastSavedStateRef.current = snapshotOf(normalized);
           setData(normalized);
           isHydratedRef.current = true;
           setIsHydrated(true);
@@ -473,7 +475,7 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!ok) return;
     const fresh = makeBaseData();
     dataRef.current = fresh;
-    lastSavedStateRef.current = JSON.stringify(fresh);
+    lastSavedStateRef.current = snapshotOf(fresh);
     setData(fresh);
     isHydratedRef.current = true;
     setIsHydrated(true);
@@ -490,7 +492,7 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const base = cloneData(dataRef.current);
     const next = typeof updater === 'function' ? updater(base) : updater;
-    const nextStr = JSON.stringify(next);
+    const nextStr = snapshotOf(next);
 
     if (nextStr !== lastSavedStateRef.current) {
       historyStackRef.current.push(lastSavedStateRef.current);
@@ -524,7 +526,7 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [saveData, flushPendingToStorage]);
 
   const restoreState = useCallback((stateStr: string) => {
-    const restored = normalizeData(JSON.parse(stateStr));
+    const restored = normalizeData({ ...JSON.parse(stateStr), schoolLogo: dataRef.current.schoolLogo });
     dataRef.current = restored;
     setData(restored);
     schedulePersist(restored, false);
@@ -591,7 +593,7 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     pendingSaveDataRef.current = null;
 
     const fresh = makeBaseData();
-    const str = JSON.stringify(fresh);
+    const str = snapshotOf(fresh);
     historyStackRef.current = [];
     redoStackRef.current = [];
     lastSavedStateRef.current = str;
