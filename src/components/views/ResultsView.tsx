@@ -537,7 +537,7 @@ export const ResultsView: React.FC = () => {
     footerText: printFooter,
   });
 
-  const handlePrintClassResults = () => {
+  const handlePrintClassResults = async () => {
     if (!activeAsmt.subjects.length) {
       toast("Add subjects first.", "error");
       return;

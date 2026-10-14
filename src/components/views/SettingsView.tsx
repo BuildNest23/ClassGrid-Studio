@@ -140,7 +140,7 @@ export const SettingsView: React.FC = () => {
   const shrinkLogo = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         try {
           const MAX = 300;
