@@ -21,7 +21,6 @@ import { getStorage, isStorageFallbackActive } from '../storage';
 import { maybeTriggerAutoBackup } from '../storage/autoBackup';
 import { App as CapApp } from '@capacitor/app';
 
-const BASE_DATA: AppData = makeBaseData();
 
 const ALL_TABS: ActiveTab[] = ["dashboard", "students", "attendance", "dailytest", "results", "funds", "view", "settings"];
 
