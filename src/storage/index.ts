@@ -10,7 +10,6 @@ export * from './SqliteStorage';
 let currentAdapter: StorageAdapter | null = null;
 let initPromise: Promise<StorageAdapter> | null = null;
 let fallbackTriggered = false;
-let initErrorMessage: string | null = null;
 
 export async function getStorage(): Promise<StorageAdapter> {
   if (currentAdapter) {
@@ -30,13 +29,11 @@ export async function getStorage(): Promise<StorageAdapter> {
         await sqliteAdapter.init();
         currentAdapter = sqliteAdapter;
         fallbackTriggered = false;
-        initErrorMessage = null;
         console.log('[Storage] Native SQLite storage successfully initialized.');
         return sqliteAdapter;
       } catch (err: any) {
         console.error('[Storage] Native SQLite initialization failed. Falling back to WebStorage:', err);
         fallbackTriggered = true;
-        initErrorMessage = err?.message || 'SQLite initialization error';
         const fallbackAdapter = new WebStorage(true);
         await fallbackAdapter.init();
         currentAdapter = fallbackAdapter;
@@ -48,7 +45,6 @@ export async function getStorage(): Promise<StorageAdapter> {
       await webAdapter.init();
       currentAdapter = webAdapter;
       fallbackTriggered = false;
-      initErrorMessage = null;
       return webAdapter;
     }
   })();

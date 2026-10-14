@@ -5,7 +5,6 @@ import { StorageAdapter, StorageEngineType } from './types';
 const DB_NAME = 'classgrid';
 const PRIMARY_KEY = 'classroomData';
 const MIGRATION_FLAG_KEY = 'migratedFromLocalStorage';
-const MIGRATION_LAUNCH_COUNT_KEY = 'sqlite_launch_count';
 
 export class SqliteStorage implements StorageAdapter {
   private sqlite: SQLiteConnection;
