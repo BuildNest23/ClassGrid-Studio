@@ -338,11 +338,11 @@ function dedupeDataImages(html: string): { html: string; css: string } {
       cls = `cg-img-${classes.size}`;
       classes.set(url, cls);
     }
-    return `${before} class="${cls}"`;
+    return `${before} data-cgimg="${cls}"`;
   });
   let css = '';
   classes.forEach((cls, url) => {
-    css += `img.${cls}{content:url("${url}");}\n`;
+    css += `img[data-cgimg="${cls}"]{content:url("${url}");}\n`;
   });
   return { html: out, css };
 }
