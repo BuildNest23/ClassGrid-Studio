@@ -23,6 +23,10 @@ jobs:
       - name: Install packages
         run: npm install --legacy-peer-deps
 
+      - name: Type check (reports errors but does not block the APK)
+        run: npm run lint
+        continue-on-error: true
+
       - name: Build web app
         run: npm run build
 
