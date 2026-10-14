@@ -20,10 +20,15 @@ if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
   }
 }
 
+// The service worker is for the browser/PWA only. Inside the Android app it is not needed and could serve stale files.
+if (typeof window !== 'undefined' && Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+}
+
 createRoot(document.getElementById('root')!).render(<App />);
 
 // Offline support (installable PWA). Only in production builds.
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if ('serviceWorker' in navigator && import.meta.env.PROD && !Capacitor.isNativePlatform()) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {
       /* offline caching is optional; ignore registration errors */
