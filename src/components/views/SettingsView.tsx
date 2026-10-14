@@ -4,6 +4,7 @@ import { PrintSizeKey } from '../../types';
 import { PRINT_SIZES } from '../../utils/helpers';
 import { ActionGrid, ActionButton } from '../ActionGrid';
 import { HowItWorks } from '../HowItWorks';
+import { WatermarkOptions } from '../WatermarkOptions';
 import {
   Printer,
   Image,
@@ -521,6 +522,11 @@ export const SettingsView: React.FC = () => {
             </button>
           )}
         </div>
+
+        <WatermarkOptions kind="result" hasLogo={!!data.schoolLogo} />
+        <p className="text-[11px] text-[#6E6656] dark:text-[#A79B85]">
+          The watermark applies to Report Cards and Fee Receipts. Receipt size and visibility are set inside the receipt popup.
+        </p>
       </div>
 
       {/* Example Demo Data (50 Students) Card */}

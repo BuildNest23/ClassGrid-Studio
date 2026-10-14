@@ -2,6 +2,7 @@ import { SyncInput } from '../SyncInput';
 import { ActionGrid, ActionButton } from '../ActionGrid';
 import { HowItWorks } from '../HowItWorks';
 import { ResultCardModal } from '../ResultCardModal';
+import { WatermarkOptions } from '../WatermarkOptions';
 import React, { useState, useMemo } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Assessment, Student } from '../../types';
@@ -1031,6 +1032,7 @@ export const ResultsView: React.FC = () => {
             );
           })}
         </div>
+        <WatermarkOptions kind="result" hasLogo={!!data.schoolLogo} />
         <input
           type="text"
           value={printFooter}
