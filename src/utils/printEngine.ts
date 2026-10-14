@@ -324,6 +324,30 @@ const BASE_PRINT_CSS = `
 `;
 
 /**
+ * Report cards embed the school logo (a base64 data URL, often several hundred KB) once PER STUDENT
+ * (corner logo or watermark). A class of 40 therefore produces tens of MB of HTML, which is fine for
+ * Chrome's print dialog (PWA) but overwhelms the Android bridge / print WebView and force-closes the app.
+ * Here every repeated data-URL <img> is replaced by a tiny class, and each image is defined ONCE in CSS.
+ */
+function dedupeDataImages(html: string): { html: string; css: string } {
+  const classes = new Map<string, string>();
+  const imgRe = /(<img\b[^>]*?)\ssrc="(data:[^"]+)"/gi;
+  const out = html.replace(imgRe, (_m, before: string, url: string) => {
+    let cls = classes.get(url);
+    if (!cls) {
+      cls = `cg-img-${classes.size}`;
+      classes.set(url, cls);
+    }
+    return `${before} class="${cls}"`;
+  });
+  let css = '';
+  classes.forEach((cls, url) => {
+    css += `img.${cls}{content:url("${url}");}\n`;
+  });
+  return { html: out, css };
+}
+
+/**
  * Builds a standalone HTML page with embedded CSS styles for off-screen WebViews or native printers.
  */
 function buildStandalonePrintHTML(
@@ -334,6 +358,9 @@ function buildStandalonePrintHTML(
   docTitle: string
 ): string {
   const dynamicCss = getDynamicPrintCss();
+  const deduped = dedupeDataImages(contentHTML);
+  contentHTML = deduped.html;
+  const imageCss = deduped.css;
   const pageMargin = orientation === 'landscape' ? '10mm' : '12mm';
   const pageNumCSS = pageNumbers
     ? ' @page { @bottom-center { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #555; font-family: Arial, sans-serif; } }'
@@ -353,6 +380,7 @@ function buildStandalonePrintHTML(
     ${pageNumCSS}
     ${BASE_PRINT_CSS}
     ${dynamicCss}
+    ${imageCss}
   </style>
 </head>
 <body>
