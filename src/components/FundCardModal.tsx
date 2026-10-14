@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { StudentCardModal } from './StudentCardModal';
+import { WatermarkOptions } from './WatermarkOptions';
+import { useWatermark, watermarkActive } from '../utils/logoWatermark';
 import { ResultPrintStyle } from '../utils/resultPrint';
 import {
   buildFeeReceiptHTML,
@@ -29,6 +31,7 @@ export const FundCardModal: React.FC<Props> = ({ data, students, studentId, onCh
   const [thanks, setThanks] = useState<string>(loadReceiptThanks);
   const [scope, setScope] = useState<string>('all'); // 'all' or a fund id
   const [open, setOpen] = useState(false);
+  const wm = useWatermark();
 
   const fund = scope !== 'all' ? data.funds.find(f => f.id === scope) : undefined;
   const fundId = fund ? fund.id : null; // a deleted fund falls back to "all funds"
@@ -43,8 +46,8 @@ export const FundCardModal: React.FC<Props> = ({ data, students, studentId, onCh
   };
 
   const buildHTML = useCallback(
-    (id: string) => buildFeeReceiptHTML({ style, data, thanks, fundId }, id),
-    [style, data, thanks, fundId]
+    (id: string) => buildFeeReceiptHTML({ style, data, thanks, fundId, watermark: wm }, id),
+    [style, data, thanks, fundId, wm]
   );
   const notice = useCallback(
     (id: string) => {
@@ -75,7 +78,7 @@ export const FundCardModal: React.FC<Props> = ({ data, students, studentId, onCh
         <span className="flex items-center gap-1.5 min-w-0">
           <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">
-            Receipt options · {style === 'a' ? 'Colour' : 'Black & white'} · {fund ? fund.name : 'All funds'}
+            Receipt options · {style === 'a' ? 'Colour' : 'Black & white'} · {fund ? fund.name : 'All funds'}{watermarkActive(wm, data.schoolLogo) ? ' · Watermark' : ''}
           </span>
         </span>
         <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -122,6 +125,7 @@ export const FundCardModal: React.FC<Props> = ({ data, students, studentId, onCh
               onChange={e => changeThanks(e.target.value)}
             />
           </div>
+          <WatermarkOptions kind="receipt" hasLogo={!!data.schoolLogo} />
         </div>
       )}
     </div>
