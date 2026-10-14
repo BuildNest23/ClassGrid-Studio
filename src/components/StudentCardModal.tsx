@@ -105,9 +105,10 @@ export const StudentCardModal: React.FC<Props> = ({
     return renderCardCanvas(doc, 2, pageW, pageH);
   };
 
-  const fallbackPrint = () => {
+  const fallbackPrint = async () => {
     toast('Could not create the file on this device, opening the print dialog instead.', 'info');
-    triggerPrint(cardHTML, 'portrait', printSize, forceOrientation, false);
+    const ok = await triggerPrint(cardHTML, 'portrait', printSize, forceOrientation, false);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   // A receipt page is as tall as its content: measure it once the preview has loaded
@@ -117,8 +118,9 @@ export const StudentCardModal: React.FC<Props> = ({
     if (page) setMeasuredH(Math.max(200, Math.ceil(page.scrollHeight)));
   };
 
-  const handlePrint = () => {
-    triggerPrint(cardHTML, 'portrait', printSize, forceOrientation, false);
+  const handlePrint = async () => {
+    const ok = await triggerPrint(cardHTML, 'portrait', printSize, forceOrientation, false);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
   const run = async (kind: 'img' | 'share') => {
