@@ -96,7 +96,8 @@ export function normalizeData(raw: unknown): AppData {
           name: String(x.name || "Subject"),
           max: Number(x.max) || 100
         })),
-      createdAt: Number(a.createdAt) || Date.now()
+      createdAt: Number(a.createdAt) || Date.now(),
+      locked: !!a.locked
     }));
 
   // ---- Funds ----
