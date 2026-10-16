@@ -1140,6 +1140,12 @@ html.dark tfoot td.sc1, html.dark tfoot td.sc2 {
   /* Report card — B */
   .print-sheet.ps2-b.ps2-card { border: 0.8mm solid #000; }
   .ps2-b .ps2-cardframe { border: 0.3mm solid #000; }
+  /* Report card B: boxed Name / Father Name / Roll No / Adm. No (same layout as A, black and white) */
+  .ps2-b .ps2-idbox { display: flex; align-items: center; gap: 5mm; background: #fff; border: 0.3mm solid #000; border-radius: 3mm; padding: 3.5mm 5mm; margin-bottom: 4mm; }
+  .ps2-b .ps2-avatar { flex: 0 0 13mm; width: 13mm; height: 13mm; line-height: 13mm; border-radius: 50%; background: #000; color: #fff; font-size: 18pt; font-weight: 800; text-align: center; }
+  .ps2-b .ps2-idgrid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+  .ps2-b .ps2-idgrid label { display: block; color: #444; font-size: calc(8pt * var(--mult, 1)); font-weight: 600; }
+  .ps2-b .ps2-idgrid b { font-size: calc(11pt * var(--mult, 1)); font-weight: 800; color: #000; }
   .ps2-b .ps2-idrows { margin-bottom: 4mm; }
   .ps2-b .ps2-idrow { display: flex; gap: 8mm; margin-bottom: 3mm; }
   .ps2-b .ps2-field { flex: 1; display: flex; align-items: baseline; gap: 1.5mm; min-width: 0; }
