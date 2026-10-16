@@ -43,6 +43,8 @@ export const Header: React.FC<HeaderProps> = ({ activeViewTitle }) => {
       if (hiddenRef.current !== v) {
         hiddenRef.current = v;
         setHiddenOnScroll(v);
+        // Lets sticky elements on screens (e.g. the Add Student form) move up when the header slides away
+        document.documentElement.classList.toggle('header-hidden', v);
       }
     };
     const onScroll = () => {
@@ -59,7 +61,10 @@ export const Header: React.FC<HeaderProps> = ({ activeViewTitle }) => {
       lastYRef.current = y;
     };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      document.documentElement.classList.remove('header-hidden');
+    };
   }, []);
 
   useEffect(() => {
