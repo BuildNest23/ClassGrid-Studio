@@ -866,6 +866,8 @@ export const ResultsView: React.FC = () => {
                               <SyncInput
                                 type="text"
                                 data-coord={`${sIdx}_${subIdx}`}
+                                inputMode="decimal"
+                                autoComplete="off"
                                 value={displayVal}
                                 onCommit={v => handleMarkChange(s.id, sub.id, v)}
                                 enterKeyHint="next"
@@ -950,6 +952,7 @@ export const ResultsView: React.FC = () => {
                       <td className="p-1 border border-[#E7E5E4] dark:border-[#44403C]">
                         <SyncInput
                           type="text"
+                          inputMode="text"
                           value={remarksVal}
                           placeholder="—"
                           onLive={v => handleRemarkChange(s.id, v)}
