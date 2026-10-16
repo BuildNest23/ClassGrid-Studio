@@ -3,7 +3,7 @@ import { ActionGrid, ActionButton } from '../ActionGrid';
 import { HowItWorks } from '../HowItWorks';
 import { ResultCardModal } from '../ResultCardModal';
 import { WatermarkOptions } from '../WatermarkOptions';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useClassroom } from '../../context/ClassroomContext';
 import { Assessment } from '../../types';
 import {
@@ -68,6 +68,12 @@ export const ResultsView: React.FC = () => {
 
   // Print design: A = colour, B = black & white (remembered on this device)
   const [cardStudentId, setCardStudentId] = useState<string | null>(null);
+
+  // Quick-entry popups (two mutually exclusive modes)
+  const [studentEntryOn, setStudentEntryOn] = useState(false);
+  const [subjectEntryOn, setSubjectEntryOn] = useState(false);
+  const [entryStudentId, setEntryStudentId] = useState<string | null>(null);
+  const [entrySubjectId, setEntrySubjectId] = useState<string | null>(null);
   const [printStyle, setPrintStyleState] = useState<ResultPrintStyle>(loadPrintStyle);
   const [printFooter, setPrintFooterState] = useState<string>(loadPrintFooter);
   const changePrintFooter = (text: string) => {
@@ -468,6 +474,26 @@ export const ResultsView: React.FC = () => {
     });
   };
 
+  // Save many marks at once (used by the quick-entry popups)
+  const handleBulkMarks = (entries: { sid: string; subId: string; text: string }[]) => {
+    const asmtId = activeAsmt.id;
+    saveData(prev => {
+      const results = { ...prev.assessmentResults };
+      const asmtRows = { ...(results[asmtId] || {}) };
+      entries.forEach(({ sid, subId, text }) => {
+        const parsed = parseMarkText(text);
+        if (!parsed.ok) return;
+        const row = { ...(asmtRows[sid] || {}) };
+        if (parsed.value === undefined) delete row[subId];
+        else row[subId] = parsed.value;
+        if (Object.keys(row).length === 0) delete asmtRows[sid];
+        else asmtRows[sid] = row;
+      });
+      results[asmtId] = asmtRows;
+      return { ...prev, assessmentResults: results };
+    });
+  };
+
   // Toggle Absent button
   const handleToggleAbsent = (sid: string, subId: string) => {
     const curVal = ((data.assessmentResults[activeAsmt.id] || {})[sid] || {})[subId];
@@ -821,6 +847,28 @@ export const ResultsView: React.FC = () => {
 
       {/* Marks Sheet Table */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs">
+        {activeAsmt.subjects.length > 0 && (
+          <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <EntryToggle
+              on={studentEntryOn}
+              onChange={v => {
+                setStudentEntryOn(v);
+                if (v) setSubjectEntryOn(false);
+              }}
+              title="Student-wise entry"
+              hint="Tap a student's name to enter all their subjects"
+            />
+            <EntryToggle
+              on={subjectEntryOn}
+              onChange={v => {
+                setSubjectEntryOn(v);
+                if (v) setStudentEntryOn(false);
+              }}
+              title="Subject-wise entry"
+              hint="Tap a subject heading to enter marks by Roll No"
+            />
+          </div>
+        )}
         {activeAsmt.subjects.length === 0 ? (
           <div className="text-center py-8 text-[#78716C] dark:text-[#A8A29E]">
             Add at least one subject above to record student marks.
@@ -841,8 +889,22 @@ export const ResultsView: React.FC = () => {
                   </th>
                   {activeAsmt.subjects.map(sub => (
                     <th key={sub.id} className="p-2 border border-[#E7E5E4] dark:border-[#44403C] min-w-[70px]">
-                      {sub.name}
-                      <span className="block text-[10px] text-[#A8A29E]">({sub.max})</span>
+                      {subjectEntryOn ? (
+                        <button
+                          type="button"
+                          onClick={() => setEntrySubjectId(sub.id)}
+                          title="Enter marks for this subject"
+                          className="w-full rounded-lg px-1.5 py-1 bg-[#E8F0F8] dark:bg-[#1E3550] text-[#2E5A8A] dark:text-[#9CC3EA] border border-[#2E5A8A]/40 font-bold cursor-pointer"
+                        >
+                          {sub.name}
+                          <span className="block text-[10px] font-semibold opacity-80">({sub.max}) ✎</span>
+                        </button>
+                      ) : (
+                        <>
+                          {sub.name}
+                          <span className="block text-[10px] text-[#A8A29E]">({sub.max})</span>
+                        </>
+                      )}
                     </th>
                   ))}
                   <th className="p-2 border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#292524] font-bold min-w-[70px]">
@@ -892,9 +954,11 @@ export const ResultsView: React.FC = () => {
                       <td className={`sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-left font-semibold truncate ${stickyBg}`}>
                         <button
                           type="button"
-                          onClick={() => setCardStudentId(s.id)}
-                          title="Open result card"
-                          className="max-w-full truncate text-left font-semibold cursor-pointer hover:underline decoration-dotted underline-offset-2"
+                          onClick={() => (studentEntryOn ? setEntryStudentId(s.id) : setCardStudentId(s.id))}
+                          title={studentEntryOn ? "Enter marks" : "Open result card"}
+                          className={`max-w-full truncate text-left font-semibold cursor-pointer hover:underline decoration-dotted underline-offset-2 ${
+                            studentEntryOn ? 'text-[#2E5A8A] dark:text-[#9CC3EA]' : ''
+                          }`}
                         >
                           {s.name || "(no name)"}
                         </button>
@@ -1155,6 +1219,45 @@ export const ResultsView: React.FC = () => {
           </ActionButton>
         </ActionGrid>
       </div>
+      {entryStudentId && activeAsmt.subjects.length > 0 && (() => {
+        const idx = sortedStudents.findIndex(x => x.id === entryStudentId);
+        const st = sortedStudents[idx];
+        if (!st) return null;
+        return (
+          <StudentEntryModal
+            key={st.id}
+            student={st}
+            subjects={activeAsmt.subjects}
+            initial={(data.assessmentResults[activeAsmt.id] || {})[st.id] || {}}
+            hasNext={idx < sortedStudents.length - 1}
+            onSave={(entries, goNext) => {
+              handleBulkMarks(entries.map(e => ({ sid: st.id, ...e })));
+              toast(`Marks saved for ${st.name || 'student'}.`, "success");
+              if (goNext && idx < sortedStudents.length - 1) setEntryStudentId(sortedStudents[idx + 1].id);
+              else setEntryStudentId(null);
+            }}
+            onClose={() => setEntryStudentId(null)}
+          />
+        );
+      })()}
+      {entrySubjectId && (() => {
+        const sub = activeAsmt.subjects.find(x => x.id === entrySubjectId);
+        if (!sub) return null;
+        const res = data.assessmentResults[activeAsmt.id] || {};
+        return (
+          <SubjectEntryModal
+            key={sub.id}
+            subject={sub}
+            students={sortedStudents.map(x => ({ id: x.id, rollNo: x.rollNo, value: (res[x.id] || {})[sub.id] }))}
+            onSave={entries => {
+              handleBulkMarks(entries.map(e => ({ ...e, subId: sub.id })));
+              toast(`${sub.name} marks saved.`, "success");
+              setEntrySubjectId(null);
+            }}
+            onClose={() => setEntrySubjectId(null)}
+          />
+        );
+      })()}
       {cardStudentId && activeAsmt.subjects.length > 0 && (
         <ResultCardModal
           ctx={printCtx()}
@@ -1164,5 +1267,304 @@ export const ResultsView: React.FC = () => {
         />
       )}
     </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Quick marks entry (popups)                                          */
+/* ------------------------------------------------------------------ */
+
+/** Parse typed marks. Empty = clear, "A" = absent, otherwise a plain non-negative number. */
+function parseMarkText(text: string): { ok: boolean; value?: number | 'A' } {
+  const t = text.trim();
+  if (t === "") return { ok: true, value: undefined };
+  if (/^a$/i.test(t)) return { ok: true, value: 'A' };
+  if (!/^(\d+\.?\d*|\.\d+)$/.test(t)) return { ok: false };
+  const n = Number(t);
+  return isFinite(n) ? { ok: true, value: n } : { ok: false };
+}
+
+const markToText = (v: number | 'A' | undefined) => (v === undefined ? "" : String(v));
+
+type FieldState = 'ok' | 'over' | 'invalid';
+function fieldState(text: string, max: number): FieldState {
+  const p = parseMarkText(text);
+  if (!p.ok) return 'invalid';
+  if (typeof p.value === 'number' && max > 0 && p.value > max) return 'over';
+  return 'ok';
+}
+
+const EntryToggle: React.FC<{ on: boolean; onChange: (v: boolean) => void; title: string; hint: string }> = ({
+  on,
+  onChange,
+  title,
+  hint
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={on}
+    onClick={() => onChange(!on)}
+    className={`flex items-center gap-3 text-left rounded-xl border px-3 py-2 cursor-pointer transition-colors ${
+      on
+        ? 'bg-[#E8F0F8] dark:bg-[#1E3550] border-[#2E5A8A]'
+        : 'bg-[#FAFAF9] dark:bg-[#292524] border-[#E7E5E4] dark:border-[#44403C]'
+    }`}
+  >
+    <span
+      className={`relative shrink-0 w-10 h-6 rounded-full transition-colors ${on ? 'bg-[#2E5A8A]' : 'bg-[#D6D3D1] dark:bg-[#57534E]'}`}
+    >
+      <span
+        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : ''}`}
+      />
+    </span>
+    <span className="min-w-0">
+      <span className="block text-xs font-bold text-[#1C1917] dark:text-[#F5F5F4]">{title}</span>
+      <span className="block text-[11px] leading-snug text-[#78716C] dark:text-[#A8A29E]">{hint}</span>
+    </span>
+  </button>
+);
+
+const EntryShell: React.FC<{
+  title: string;
+  subtitle: string;
+  onClose: () => void;
+  footer: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, subtitle, onClose, footer, children }) => (
+  <div
+    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+    onMouseDown={e => {
+      if (e.target === e.currentTarget) onClose();
+    }}
+  >
+    <div className="w-full sm:max-w-md max-h-[92vh] flex flex-col bg-white dark:bg-[#1C1917] rounded-t-2xl sm:rounded-2xl shadow-2xl border border-[#E7E5E4] dark:border-[#44403C]">
+      <div className="flex items-start justify-between gap-2 px-4 py-3 border-b border-[#E7E5E4] dark:border-[#44403C]">
+        <div className="min-w-0">
+          <h3 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4] truncate">{title}</h3>
+          <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E]">{subtitle}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="p-1.5 rounded-lg text-[#78716C] hover:bg-[#F5F5F4] dark:hover:bg-[#292524] cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="overflow-y-auto px-4 py-3 flex-1">{children}</div>
+      <div className="px-4 py-3 border-t border-[#E7E5E4] dark:border-[#44403C] flex gap-2">{footer}</div>
+    </div>
+  </div>
+);
+
+/** One marks box (with Absent button). Shared by both popups. */
+const MarkBox: React.FC<{
+  text: string;
+  max: number;
+  onText: (t: string) => void;
+  onEnter: () => void;
+  inputRef: (el: HTMLInputElement | null) => void;
+  autoFocus?: boolean;
+}> = ({ text, max, onText, onEnter, inputRef, autoFocus }) => {
+  const st = fieldState(text, max);
+  const absent = /^a$/i.test(text.trim());
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        autoFocus={autoFocus}
+        enterKeyHint="next"
+        value={text}
+        placeholder="—"
+        onFocus={e => e.currentTarget.select()}
+        onChange={e => onText(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            onEnter();
+          }
+        }}
+        className={`w-20 p-2 text-center text-base font-bold font-mono rounded-lg border-2 bg-white dark:bg-[#0C0A09] text-inherit focus:outline-none ${
+          st === 'invalid'
+            ? 'border-[#B23A32]'
+            : st === 'over'
+            ? 'border-[#B4791F]'
+            : 'border-[#D6D3D1] dark:border-[#44403C] focus:border-[#2E5A8A]'
+        } ${absent ? 'text-[#7F1D1D]' : ''}`}
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={() => onText(absent ? "" : "A")}
+        title="Toggle Absent"
+        className={`w-8 h-8 rounded-lg text-xs font-bold cursor-pointer border ${
+          absent
+            ? 'bg-[#F8E4E1] text-[#7F1D1D] border-[#B23A32]'
+            : 'bg-[#FAFAF9] dark:bg-[#292524] text-[#A8A29E] border-[#E7E5E4] dark:border-[#44403C]'
+        }`}
+      >
+        A
+      </button>
+      {st === 'over' && <span className="text-[11px] font-semibold text-[#B4791F]">max {max}</span>}
+      {st === 'invalid' && <span className="text-[11px] font-semibold text-[#B23A32]">numbers or A only</span>}
+    </div>
+  );
+};
+
+/** Validate a draft; returns false (and tells the user) if it should not be saved. */
+function useEntryGuard() {
+  const { toast, uiConfirm } = useClassroom();
+  return async (states: FieldState[]) => {
+    if (states.includes('invalid')) {
+      toast("Fix the highlighted boxes first (numbers or A only).", "error");
+      return false;
+    }
+    const over = states.filter(x => x === 'over').length;
+    if (over > 0) {
+      return await uiConfirm(`${over} mark(s) are higher than the maximum.\n\nSave anyway?`, {
+        title: "Marks above maximum",
+        yesText: "Save anyway",
+        icon: "warning"
+      });
+    }
+    return true;
+  };
+}
+
+const StudentEntryModal: React.FC<{
+  student: { id: string; name: string; rollNo: string };
+  subjects: { id: string; name: string; max: number }[];
+  initial: Record<string, number | 'A'>;
+  hasNext: boolean;
+  onSave: (entries: { subId: string; text: string }[], goNext: boolean) => void;
+  onClose: () => void;
+}> = ({ student, subjects, initial, hasNext, onSave, onClose }) => {
+  const [draft, setDraft] = useState<Record<string, string>>(() =>
+    Object.fromEntries(subjects.map(s => [s.id, markToText(initial[s.id])]))
+  );
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const saveRef = useRef<HTMLButtonElement | null>(null);
+  const guard = useEntryGuard();
+
+  const submit = async (goNext: boolean) => {
+    const ok = await guard(subjects.map(s => fieldState(draft[s.id] ?? "", s.max)));
+    if (!ok) return;
+    onSave(subjects.map(s => ({ subId: s.id, text: draft[s.id] ?? "" })), goNext);
+  };
+
+  const goTo = (i: number) => {
+    if (i < subjects.length) refs.current[i]?.focus();
+    else saveRef.current?.focus();
+  };
+
+  return (
+    <EntryShell
+      title={student.name || "(no name)"}
+      subtitle={`Roll ${student.rollNo || "—"} · type marks, or A for absent`}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            ref={saveRef}
+            type="button"
+            onClick={() => submit(false)}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-[#2E5A8A] text-white cursor-pointer"
+          >
+            Save
+          </button>
+          {hasNext && (
+            <button
+              type="button"
+              onClick={() => submit(true)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-[#E8F0F8] dark:bg-[#1E3550] text-[#2E5A8A] dark:text-[#9CC3EA] border border-[#2E5A8A]/40 cursor-pointer"
+            >
+              Save &amp; Next →
+            </button>
+          )}
+        </>
+      }
+    >
+      <div className="space-y-2">
+        {subjects.map((sub, i) => (
+          <div key={sub.id} className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-[#1C1917] dark:text-[#F5F5F4] truncate">{sub.name}</div>
+              <div className="text-[11px] text-[#A8A29E]">out of {sub.max}</div>
+            </div>
+            <MarkBox
+              text={draft[sub.id] ?? ""}
+              max={sub.max}
+              onText={t => setDraft(d => ({ ...d, [sub.id]: t }))}
+              onEnter={() => goTo(i + 1)}
+              inputRef={el => (refs.current[i] = el)}
+              autoFocus={i === 0}
+            />
+          </div>
+        ))}
+      </div>
+    </EntryShell>
+  );
+};
+
+const SubjectEntryModal: React.FC<{
+  subject: { id: string; name: string; max: number };
+  students: { id: string; rollNo: string; value: number | 'A' | undefined }[];
+  onSave: (entries: { sid: string; text: string }[]) => void;
+  onClose: () => void;
+}> = ({ subject, students, onSave, onClose }) => {
+  const [draft, setDraft] = useState<Record<string, string>>(() =>
+    Object.fromEntries(students.map(s => [s.id, markToText(s.value)]))
+  );
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const saveRef = useRef<HTMLButtonElement | null>(null);
+  const guard = useEntryGuard();
+  const filled = students.filter(s => (draft[s.id] ?? "").trim() !== "").length;
+
+  const submit = async () => {
+    const ok = await guard(students.map(s => fieldState(draft[s.id] ?? "", subject.max)));
+    if (!ok) return;
+    onSave(students.map(s => ({ sid: s.id, text: draft[s.id] ?? "" })));
+  };
+
+  return (
+    <EntryShell
+      title={subject.name}
+      subtitle={`Out of ${subject.max} · ${filled} of ${students.length} filled · A = absent`}
+      onClose={onClose}
+      footer={
+        <button
+          ref={saveRef}
+          type="button"
+          onClick={submit}
+          className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-[#2E5A8A] text-white cursor-pointer"
+        >
+          Save {subject.name} marks
+        </button>
+      }
+    >
+      <div className="space-y-1.5">
+        {students.map((s, i) => (
+          <div
+            key={s.id}
+            className="flex items-center justify-between gap-3 border-b border-[#F5F5F4] dark:border-[#292524] pb-1.5"
+          >
+            <span className="font-mono font-bold text-sm w-14 text-[#1C1917] dark:text-[#F5F5F4]">{s.rollNo || "—"}</span>
+            <MarkBox
+              text={draft[s.id] ?? ""}
+              max={subject.max}
+              onText={t => setDraft(d => ({ ...d, [s.id]: t }))}
+              onEnter={() => (i + 1 < students.length ? refs.current[i + 1]?.focus() : saveRef.current?.focus())}
+              inputRef={el => (refs.current[i] = el)}
+              autoFocus={i === 0}
+            />
+          </div>
+        ))}
+      </div>
+    </EntryShell>
   );
 };
