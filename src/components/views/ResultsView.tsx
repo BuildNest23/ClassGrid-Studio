@@ -17,6 +17,8 @@ import {
   gridTabIndex,
 } from '../../utils/helpers';
 import { triggerPrint } from '../../utils/printEngine';
+import { exportFileBlob } from '../../utils/nativeFileExport';
+import { buildResultsAiFile, planResultsImport } from '../../utils/aiExchange';
 import {
   ResultPrintStyle,
   loadPrintStyle,
@@ -35,7 +37,9 @@ import {
   Copy,
   Plus,
   BarChart3,
-  X
+  X,
+  Sparkles,
+  Upload
 } from 'lucide-react';
 
 export const ResultsView: React.FC = () => {
@@ -579,6 +583,54 @@ export const ResultsView: React.FC = () => {
     if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
+  // Edit with AI: export this assessment as a small JSON file, then import the edited file back (remarks only)
+  const handleExportForAi = async () => {
+    if (!activeAsmt.subjects.length) {
+      toast("Add subjects first.", "error");
+      return;
+    }
+    const file = buildResultsAiFile(data, activeAsmt, ranked);
+    const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
+    const safe = activeAsmt.name.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 40) || "results";
+    const ok = await exportFileBlob(blob, `results-for-ai-${safe}.json`, { title: "Results for AI" });
+    if (!ok) toast("Could not export the file.", "error");
+  };
+
+  const handleImportFromAi = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const plan = await planResultsImport(file, data, activeAsmt);
+      if (plan.changed === 0) {
+        toast("Nothing to update. All remarks are already the same.", "info");
+        return;
+      }
+      const notes: string[] = [];
+      if (plan.unchanged) notes.push(`${plan.unchanged} already the same`);
+      if (plan.skippedBlank) notes.push(`${plan.skippedBlank} blank (kept as they are)`);
+      if (plan.skippedUnknown) notes.push(`${plan.skippedUnknown} unknown students skipped`);
+      if (plan.truncated) notes.push(`${plan.truncated} shortened to 300 characters`);
+      const ok = await uiConfirm(
+        `${plan.changed} remarks will be updated in "${activeAsmt.name}".` +
+          (notes.length ? `\n\n${notes.join("\n")}` : "") +
+          `\n\nMarks are not changed. You can Undo afterwards.`,
+        { title: "Import from AI", yesText: "Import", icon: "warning" }
+      );
+      if (!ok) return;
+      saveData(prev => ({
+        ...prev,
+        assessmentRemarks: {
+          ...prev.assessmentRemarks,
+          [activeAsmt.id]: { ...(prev.assessmentRemarks[activeAsmt.id] || {}), ...plan.updates },
+        },
+      }));
+      toast(`${plan.changed} remarks updated.`, "success");
+    } catch (err) {
+      toast((err as Error).message || "Could not read the file.", "error");
+    }
+  };
+
   return (
     <div className="space-y-3">
       <HowItWorks
@@ -1005,6 +1057,26 @@ export const ResultsView: React.FC = () => {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Edit with AI */}
+      <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">Edit with AI</h3>
+          <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
+            Export this assessment, let an AI write the remarks, then import the file back. Only remarks are changed.
+          </p>
+        </div>
+        <ActionGrid cols={2}>
+          <ActionButton variant="secondary" icon={Sparkles} onClick={handleExportForAi}>
+            Export for AI
+          </ActionButton>
+          <label className="w-full min-h-12 px-2.5 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap transition-colors select-none cursor-pointer bg-stone-50 hover:bg-stone-100 active:bg-stone-200 text-stone-800 border border-stone-200 dark:bg-stone-800/90 dark:hover:bg-stone-700/90 dark:text-stone-200 dark:border-stone-700">
+            <Upload className="w-4 h-4 shrink-0" />
+            <span className="truncate">Import from AI</span>
+            <input type="file" accept=".json,application/json" onChange={handleImportFromAi} className="hidden" />
+          </label>
+        </ActionGrid>
       </div>
 
       {/* Print Actions Section */}
