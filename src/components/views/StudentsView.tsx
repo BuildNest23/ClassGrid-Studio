@@ -3,6 +3,9 @@ import { useClassroom } from '../../context/ClassroomContext';
 import { Student } from '../../types';
 import { newId } from '../../utils/helpers';
 import { HowItWorks } from '../HowItWorks';
+import { ActionGrid, ActionButton } from '../ActionGrid';
+import { exportFileBlob } from '../../utils/nativeFileExport';
+import { buildStudentsAiFile, planStudentsImport } from '../../utils/aiExchange';
 import {
   UserPlus,
   Edit2,
@@ -13,7 +16,9 @@ import {
   AlertTriangle,
   GraduationCap,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Sparkles,
+  Upload
 } from 'lucide-react';
 
 export const StudentsView: React.FC = () => {
@@ -253,6 +258,69 @@ export const StudentsView: React.FC = () => {
     toast("Student removed.", "success");
   };
 
+  // Edit with AI: one export / one import. The AI can fix names and add new students.
+  const handleExportForAi = async () => {
+    const blob = new Blob([JSON.stringify(buildStudentsAiFile(data), null, 2)], { type: "application/json" });
+    const ok = await exportFileBlob(blob, "students-for-ai.json", { title: "Students for AI" });
+    if (!ok) toast("Could not export the file.", "error");
+  };
+
+  const handleImportFromAi = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const plan = await planStudentsImport(file, data);
+      const adds = plan.additions.length;
+      if (plan.changedStudents === 0 && adds === 0) {
+        toast("Nothing to update or add.", "info");
+        return;
+      }
+      const parts: string[] = [];
+      if (plan.changedStudents) {
+        const what: string[] = [];
+        if (plan.changedNames) what.push(`${plan.changedNames} names`);
+        if (plan.changedFathers) what.push(`${plan.changedFathers} father names`);
+        parts.push(`${plan.changedStudents} students will be updated (${what.join(", ")}).\n${plan.examples.join("\n")}`);
+      }
+      if (adds) {
+        const more = adds > plan.addedPreview.length ? `\n…and ${adds - plan.addedPreview.length} more` : "";
+        parts.push(`${adds} new students will be added at the end of the list:\n${plan.addedPreview.join("\n")}${more}`);
+      }
+      const notes: string[] = [];
+      if (plan.unchanged) notes.push(`${plan.unchanged} already the same`);
+      if (plan.skippedDuplicate) notes.push(`${plan.skippedDuplicate} duplicates skipped`);
+      if (plan.sameNameNotes) notes.push(`${plan.sameNameNotes} new students share a name with an existing student`);
+      if (plan.skippedInvalid) notes.push(`${plan.skippedInvalid} blank or invalid entries ignored`);
+      if (plan.skippedUnknown) notes.push(`${plan.skippedUnknown} unknown students skipped`);
+      const ok = await uiConfirm(
+        parts.join("\n\n") +
+          (notes.length ? `\n\n${notes.join("\n")}` : "") +
+          `\n\nRoll numbers of existing students and all admission numbers are not changed. You can Undo afterwards.`,
+        { title: "Import from AI", yesText: "Import", icon: "warning" }
+      );
+      if (!ok) return;
+      saveData(prev => {
+        const updated = prev.students.map(s => (plan.updates[s.id] ? { ...s, ...plan.updates[s.id] } : s));
+        const added: Student[] = plan.additions.map((n, i) => ({
+          id: newId(),
+          admissionNo: n.admissionNo,
+          rollNo: String(updated.length + i + 1).padStart(2, "0"),
+          name: n.name,
+          fatherName: n.fatherName,
+          phone: "",
+          address: "",
+          notes: "",
+          createdAt: Date.now(),
+        }));
+        return { ...prev, students: [...updated, ...added] };
+      });
+      toast(`${plan.changedStudents} updated, ${adds} added.`, "success");
+    } catch (err) {
+      toast((err as Error).message || "Could not read the file.", "error");
+    }
+  };
+
   const filteredStudents = data.students.filter(s => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -414,6 +482,26 @@ export const StudentsView: React.FC = () => {
             )}
           </div>
         </form>
+      </div>
+
+      {/* Edit with AI */}
+      <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">Edit with AI</h3>
+          <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
+            Export your students, let an AI fix names or add new students (for example from a PDF list), then import the file back. Only names, father names and admission numbers are shared.
+          </p>
+        </div>
+        <ActionGrid cols={2}>
+          <ActionButton variant="secondary" icon={Sparkles} onClick={handleExportForAi}>
+            Export for AI
+          </ActionButton>
+          <label className="w-full min-h-12 px-2.5 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap transition-colors select-none cursor-pointer bg-stone-50 hover:bg-stone-100 active:bg-stone-200 text-stone-800 border border-stone-200 dark:bg-stone-800/90 dark:hover:bg-stone-700/90 dark:text-stone-200 dark:border-stone-700">
+            <Upload className="w-4 h-4 shrink-0" />
+            <span className="truncate">Import from AI</span>
+            <input type="file" accept=".json,application/json" onChange={handleImportFromAi} className="hidden" />
+          </label>
+        </ActionGrid>
       </div>
 
       {/* Search Header */}
