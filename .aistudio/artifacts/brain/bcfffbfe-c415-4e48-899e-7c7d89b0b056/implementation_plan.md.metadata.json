@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan to replace localStorage with SQLite persistence on Android via @capacitor-community/sqlite, while keeping standard localStorage on Web/PWA, with zero data loss, safe migration, debounced queued writes, flush-on-pause, and automated safety backups to Documents.",
-  "updatedAt": "2026-10-12T20:31:53.796386898Z",
+  "summary": "Implementation plan for Capitalize Text on Prints feature and long name auto-fitting across HTML prints, previews, PDF/image exports, and canvas PNGs.",
+  "updatedAt": "2026-10-16T16:11:22.839931140Z",
   "requestFeedback": true,
   "userFacing": true
 }

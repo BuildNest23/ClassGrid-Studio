@@ -152,7 +152,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
       rowsHTML += `
         <tr>
           <td class="col-sr">${srNo}</td>
-          <td class="col-name">${name}</td>
+          <td class="col-name"><span class="cg-fit">${name}</span></td>
           <td class="col-roll">${rollNo}</td>
           ${dayCellsHTML}
           <td class="col-total">${totalText}</td>
@@ -164,7 +164,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
     }
 
     allPage1SheetsHTML += `
-      <div class="dt-sheet page-1">
+      <div class="print-sheet dt-sheet page-1">
         ${buildHeaderStripHTML('STUDENT-WISE RECORD (Page 1 of 2)', badgeLabel)}
 
         <div class="dt-table-wrap">
@@ -201,7 +201,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
               <svg class="dt-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
               <span>INSTRUCTIONS FOR TEACHERS</span>
             </div>
-            <ol class="dt-card-list">
+            <ol class="dt-card-list cg-nocap">
               <li>Conduct a 10-minute daily quick test for all students.</li>
               <li>Enter each student's marks (out of 10) on the same day.</li>
               <li>Calculate total and average at the end of the month.</li>
@@ -215,7 +215,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
             <div class="dt-card-header">
               <span>CLASS TEACHER DECLARATION</span>
             </div>
-            <div class="dt-decl-text">
+            <div class="dt-decl-text cg-nocap">
               I confirm that the daily quick tests have been conducted as per instructions and the record has been maintained regularly.
             </div>
             <div class="dt-sig-lines">
@@ -241,7 +241,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
 
           <div class="dt-card-box dt-box-quote">
             <div class="dt-quote-mark">“</div>
-            <div class="dt-quote-body">
+            <div class="dt-quote-body cg-nocap">
               Consistent assessment today leads to stronger learning tomorrow.
             </div>
           </div>
@@ -333,7 +333,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
   const monthAvgText = monthMarkCount > 0 ? (monthMarkSum / monthMarkCount).toFixed(1) : '';
 
   const page2HTML = `
-    <div class="dt-sheet page-2">
+    <div class="print-sheet dt-sheet page-2">
       ${buildHeaderStripHTML('DAILY CLASS SUMMARY (Page 2 of 2)', '<b>Page 2 of 2</b><small>(Daily Class Summary)</small>')}
 
       <div class="dt-table-wrap">
@@ -381,7 +381,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
             <svg class="dt-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             <span>TEACHER'S REFLECTION</span>
           </div>
-          <div class="dt-reflection-body">
+          <div class="dt-reflection-body cg-nocap">
             <div class="dt-sig-line"><span>What worked well this month?</span><span class="line-fill"></span></div>
             <div class="dt-sig-line"><span style="visibility:hidden">spacer</span><span class="line-fill"></span></div>
             <div class="dt-sig-line"><span>Challenges faced and support needed:</span><span class="line-fill"></span></div>
@@ -405,7 +405,7 @@ export function generateDailyTestRegisterHTML(data: AppData, options: PrintOptio
           <div class="dt-quote-cap">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="#0B5D45"><path d="M12 2L1 7l11 5 9-4.09V17h2V7L12 2zm0 13.5L5 12.32V17c0 3.87 3.13 7 7 7s7-3.13 7-7v-4.68l-7 3.18z"/></svg>
           </div>
-          <div class="dt-quote-body">
+          <div class="dt-quote-body cg-nocap">
             "Regular assessment today leads to stronger learners tomorrow."
           </div>
         </div>

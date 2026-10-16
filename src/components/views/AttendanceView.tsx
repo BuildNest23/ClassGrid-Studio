@@ -422,8 +422,8 @@ export const AttendanceView: React.FC = () => {
           <tr>
             <td class="center">${r.idx}</td>
             <td class="center">${esc(r.s.rollNo || "—")}</td>
-            <td>${esc(r.s.name || "—")}</td>
-            <td>${esc(r.s.fatherName || "—")}</td>
+            <td><span class="cg-fit">${esc(r.s.name || "—")}</span></td>
+            <td><span class="cg-fit">${esc(r.s.fatherName || "—")}</span></td>
             <td class="center">${esc(r.s.phone || "—")}</td>
             <td class="center" style="font-weight:700">${r.status}</td>
           </tr>`).join("")}
@@ -494,7 +494,7 @@ export const AttendanceView: React.FC = () => {
 
       return `<tr>
         <td>${esc(s.rollNo || "—")}</td>
-        <td class="left" style="text-align:left;padding-left:1mm">${esc(s.name || "—")}</td>
+        <td class="left" style="text-align:left;padding-left:1mm"><span class="cg-fit">${esc(s.name || "—")}</span></td>
         ${cells}
         <td class="total-col font-bold">${stats.p}</td>
         <td class="total-col">${stats.a}</td>
@@ -506,7 +506,7 @@ export const AttendanceView: React.FC = () => {
     const fullPrintHTML = `<div class="print-sheet">
       ${buildPrintHeaderHTML("Monthly Attendance Register")}
       <div class="print-sub2" style="font-weight:700">Month: ${esc(prettyMonth(registerMonth))}</div>
-      <div class="print-sub2" style="font-size:9pt;margin-top:1mm">
+      <div class="print-sub2 cg-nocap" style="font-size:9pt;margin-top:1mm">
         P = Present • A = Absent • L = Leave (excused) • H = Class Holiday • % = P / (P+A)
       </div>
       <div style="margin-top:3mm"></div>

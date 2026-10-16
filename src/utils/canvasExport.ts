@@ -1,6 +1,73 @@
 import { AppData, Student } from '../types';
 import { getSortedStudents, loadImage, prettyDate } from './helpers';
 import { exportImageBlob } from './nativeFileExport';
+import { loadCapsPrint } from './capsPrint';
+
+function cap(text: string, enabled: boolean): string {
+  if (!text) return '';
+  return enabled ? text.toUpperCase() : text;
+}
+
+function drawFittedOrWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  baseFontSize: number,
+  fontFamily: string,
+  maxLines: number = 2
+) {
+  const maxW = width - 10;
+  const floorSize = baseFontSize * 0.75;
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#000000';
+
+  // Try shrinking font down to 75% in 0.25 steps to fit on a single line
+  let fitsOneLine = false;
+  let fittedSize = baseFontSize;
+
+  for (let sz = baseFontSize; sz >= floorSize; sz = Math.round((sz - 0.25) * 100) / 100) {
+    ctx.font = `600 ${sz}px ${fontFamily}`;
+    if (ctx.measureText(text).width <= maxW) {
+      fitsOneLine = true;
+      fittedSize = sz;
+      break;
+    }
+  }
+
+  if (fitsOneLine) {
+    ctx.font = `600 ${fittedSize}px ${fontFamily}`;
+    ctx.fillText(text, x + 5, y + height / 2);
+    ctx.textAlign = 'center';
+    return;
+  }
+
+  // Otherwise wrap into multiple lines as before
+  ctx.font = `600 ${baseFontSize}px ${fontFamily}`;
+  const words = text.split(/\s+/);
+  let line = '';
+  const lines: string[] = [];
+  words.forEach(w => {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width <= maxW) {
+      line = test;
+    } else {
+      if (line) lines.push(line);
+      line = w;
+    }
+  });
+  if (line) lines.push(line);
+
+  const finalLines = lines.length > maxLines ? lines.slice(0, maxLines) : lines;
+  const lineH = baseFontSize * 1.15;
+  const totalTextH = finalLines.length * lineH;
+  const startY = y + height / 2 - totalTextH / 2 + lineH / 2 - 1;
+  finalLines.forEach((ln, li) => ctx.fillText(ln, x + 5, startY + li * lineH));
+  ctx.textAlign = 'center';
+}
 
 export async function downloadAbsenteeSlipPNG(dateKey: string, data: AppData): Promise<boolean> {
   const day = data.attendance[dateKey];
@@ -64,10 +131,11 @@ export async function downloadAbsenteeSlipPNG(dateKey: string, data: AppData): P
   const textRightBound = totalW - pad;
   const centerX = (textLeftBound + textRightBound) / 2;
 
+  const isCaps = loadCapsPrint();
   let y = pad;
   ctx.fillStyle = "#111827";
   ctx.font = `700 22px ${F}`;
-  ctx.fillText(data.schoolName, centerX, y + 16);
+  ctx.fillText(cap(data.schoolName, isCaps), centerX, y + 16);
   y += 32;
 
   const classSub = data.className ? `Class: ${data.className}` : "";
@@ -76,14 +144,14 @@ export async function downloadAbsenteeSlipPNG(dateKey: string, data: AppData): P
   if (line1) {
     ctx.font = `700 13px ${F}`;
     ctx.fillStyle = "#374151";
-    ctx.fillText(line1, centerX, y + 8);
+    ctx.fillText(cap(line1, isCaps), centerX, y + 8);
     y += 22;
   }
 
   if (data.academicYear) {
     ctx.font = `600 12px ${F}`;
     ctx.fillStyle = "#4B5563";
-    ctx.fillText(data.academicYear, centerX, y + 8);
+    ctx.fillText(cap(data.academicYear, isCaps), centerX, y + 8);
     y += 20;
   }
 
@@ -107,7 +175,7 @@ export async function downloadAbsenteeSlipPNG(dateKey: string, data: AppData): P
     ctx.fillStyle = "#166534";
     ctx.fillText("All students were present.", centerX, y + 30);
   } else {
-    const headers = ["#", "Roll", "Name", "Father Name", "Phone", "Status"];
+    const headers = ["#", "Roll", "Name", "Father Name", "Phone", "Status"].map(h => cap(h, isCaps));
     ctx.fillStyle = "#F3F4F6";
     ctx.fillRect(pad, y, tableW, headRowH);
     ctx.strokeStyle = "#000000";
@@ -138,36 +206,16 @@ export async function downloadAbsenteeSlipPNG(dateKey: string, data: AppData): P
       const cells = [
         String(row.idx),
         row.s.rollNo || "—",
-        row.s.name || "—",
-        row.s.fatherName || "—",
+        cap(row.s.name || "—", isCaps),
+        cap(row.s.fatherName || "—", isCaps),
         row.s.phone || "—",
-        row.status
+        cap(row.status, isCaps)
       ];
 
       cells.forEach((val, i) => {
         ctx.strokeRect(x, y, colWidths[i], rowH);
         if (i === 2 || i === 3) {
-          ctx.textAlign = "left";
-          const maxW = colWidths[i] - 10;
-          const words = String(val).split(/\s+/);
-          let line = "";
-          const lines: string[] = [];
-          words.forEach(w => {
-            const test = line ? line + " " + w : w;
-            if (ctx.measureText(test).width <= maxW) {
-              line = test;
-            } else {
-              if (line) lines.push(line);
-              line = w;
-            }
-          });
-          if (line) lines.push(line);
-          const finalLines = lines.length > 2 ? lines.slice(0, 2) : lines;
-          const lineH = 17;
-          const totalTextH = finalLines.length * lineH;
-          const startY = y + rowH / 2 - totalTextH / 2 + lineH / 2 - 1;
-          finalLines.forEach((ln, li) => ctx.fillText(ln, x + 5, startY + li * lineH));
-          ctx.textAlign = "center";
+          drawFittedOrWrappedText(ctx, val, x, y, colWidths[i], rowH, 15, F, 2);
         } else {
           ctx.fillText(val, x + colWidths[i] / 2, y + rowH / 2);
         }
@@ -248,10 +296,11 @@ export async function downloadStudentListPNG(data: AppData): Promise<boolean> {
   const textRightBound = totalW - pad;
   const centerX = (textLeftBound + textRightBound) / 2;
 
+  const isCaps = loadCapsPrint();
   let y = pad;
   ctx.fillStyle = "#111827";
   ctx.font = `700 22px ${F}`;
-  ctx.fillText(data.schoolName, centerX, y + 16);
+  ctx.fillText(cap(data.schoolName, isCaps), centerX, y + 16);
   y += 32;
 
   const classSub = data.className ? `Class: ${data.className}` : "";
@@ -260,14 +309,14 @@ export async function downloadStudentListPNG(data: AppData): Promise<boolean> {
   if (line1) {
     ctx.font = `700 13px ${F}`;
     ctx.fillStyle = "#374151";
-    ctx.fillText(line1, centerX, y + 8);
+    ctx.fillText(cap(line1, isCaps), centerX, y + 8);
     y += 22;
   }
 
   if (data.academicYear) {
     ctx.font = `600 12px ${F}`;
     ctx.fillStyle = "#4B5563";
-    ctx.fillText(data.academicYear, centerX, y + 8);
+    ctx.fillText(cap(data.academicYear, isCaps), centerX, y + 8);
     y += 20;
   }
 
@@ -277,7 +326,7 @@ export async function downloadStudentListPNG(data: AppData): Promise<boolean> {
   ctx.fillText("STUDENT LIST", centerX, y + 12);
   y = pad + headerH;
 
-  const headers = ["#", "Adm. No", "Roll", "Name", "Father Name", "Phone", "Address", "Notes"];
+  const headers = ["#", "Adm. No", "Roll", "Name", "Father Name", "Phone", "Address", "Notes"].map(h => cap(h, isCaps));
   ctx.fillStyle = "#F3F4F6";
   ctx.fillRect(pad, y, tableW, headRowH);
   ctx.strokeStyle = "#000000";
@@ -305,16 +354,18 @@ export async function downloadStudentListPNG(data: AppData): Promise<boolean> {
       String(idx + 1),
       s.admissionNo || "—",
       s.rollNo || "—",
-      s.name || "—",
-      s.fatherName || "—",
+      cap(s.name || "—", isCaps),
+      cap(s.fatherName || "—", isCaps),
       s.phone || "—",
-      s.address || "—",
+      cap(s.address || "—", isCaps),
       s.notes || "—"
     ];
 
     cells.forEach((val, i) => {
       ctx.strokeRect(x, y, colWidths[i], rowH);
-      if (i === 3 || i === 4 || i === 6 || i === 7) {
+      if (i === 3 || i === 4) {
+        drawFittedOrWrappedText(ctx, val, x, y, colWidths[i], rowH, 11.5, F, 2);
+      } else if (i === 6 || i === 7) {
         ctx.textAlign = "left";
         const maxW = colWidths[i] - 10;
         const words = String(val).split(/\s+/);

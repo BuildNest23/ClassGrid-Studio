@@ -24,6 +24,7 @@ import { exportFileBlob } from '../../utils/nativeFileExport';
 import { Capacitor } from '@capacitor/core';
 import { getStorage } from '../../storage';
 import { getLastAutoBackupTimestamp } from '../../storage/autoBackup';
+import { useCapsPrint, saveCapsPrint } from '../../utils/capsPrint';
 
 const LAST_BACKUP_KEY = 'classgrid_last_backup';
 const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
@@ -77,6 +78,7 @@ export const SettingsView: React.FC = () => {
     details: string;
     fallbackActive?: boolean;
   } | null>(null);
+  const capsPrint = useCapsPrint();
 
   useEffect(() => {
     let mounted = true;
@@ -211,6 +213,7 @@ export const SettingsView: React.FC = () => {
 
   const handleResetPrintSettings = () => {
     saveData(prev => ({ ...prev, printSize: "m", forceOrientation: "" }));
+    saveCapsPrint(false);
     toast("Print settings reset to default.", "success");
   };
 
@@ -496,6 +499,28 @@ export const SettingsView: React.FC = () => {
               <option value="landscape">Force Landscape</option>
             </select>
           </div>
+        </div>
+
+        <div className="pt-2 border-t border-[#E5DFD0] dark:border-[#3A3527]">
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={capsPrint}
+              onChange={e => {
+                saveCapsPrint(e.target.checked);
+                toast(e.target.checked ? "Capitalize text on prints enabled" : "Capitalize text on prints disabled", "info");
+              }}
+              className="mt-0.5 rounded border-[#DAD3C3] text-red-800 focus:ring-red-800 dark:border-[#3A3527] dark:bg-[#1F1C17] w-4 h-4 cursor-pointer"
+            />
+            <div className="space-y-0.5">
+              <span className="text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
+                Capitalize text on prints
+              </span>
+              <p className="text-[11px] text-[#6E6656] dark:text-[#A79B85]">
+                Prints names, subjects and headings in CAPITAL letters. Remarks and notes stay as typed.
+              </p>
+            </div>
+          </label>
         </div>
 
         <div>

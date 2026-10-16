@@ -19,11 +19,11 @@ export const StudentDirectoryView: React.FC = () => {
         <td class="center font-bold">${i + 1}</td>
         <td class="center font-mono">${esc(s.admissionNo || "—")}</td>
         <td class="center font-mono font-bold">${esc(s.rollNo || "—")}</td>
-        <td>${esc(s.name || "—")}</td>
-        <td>${esc(s.fatherName || "—")}</td>
+        <td><span class="cg-fit">${esc(s.name || "—")}</span></td>
+        <td><span class="cg-fit">${esc(s.fatherName || "—")}</span></td>
         <td class="center">${esc(s.phone || "—")}</td>
         <td>${esc(s.address || "—")}</td>
-        <td>${esc(s.notes || "—")}</td>
+        <td class="cg-nocap">${esc(s.notes || "—")}</td>
       </tr>`).join("");
 
     const fullPrintHTML = `<div class="print-sheet">

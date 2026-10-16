@@ -718,6 +718,18 @@ html.dark tfoot td.sc1, html.dark tfoot td.sc2 {
     page-break-after: auto;
   }
 
+  .caps-on .print-sheet,
+  .caps-on.cg-page .print-sheet,
+  .caps-on.print-sheet {
+    text-transform: uppercase;
+  }
+
+  .caps-on .print-sheet .cg-nocap,
+  .caps-on.cg-page .print-sheet .cg-nocap,
+  .caps-on.print-sheet .cg-nocap {
+    text-transform: none;
+  }
+
   .print-header-inner {
     display: flex !important;
     align-items: center !important;

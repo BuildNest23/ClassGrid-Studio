@@ -16,6 +16,8 @@ import {
   shareFile,
   safeFileName
 } from '../utils/cardExport';
+import { useCapsPrint } from '../utils/capsPrint';
+import { fitLongNames } from '../utils/fitText';
 
 interface CardItem {
   id: string;
@@ -58,10 +60,23 @@ export const StudentCardModal: React.FC<Props> = ({
   const pageW = receipt ? RECEIPT_PAGE_W_PX : CARD_W_PX;
   const pageH = receipt ? measuredH : CARD_H_PX;
 
-  const cardHTML = buildHTML(studentId);
+  const caps = useCapsPrint();
+  const rawCardHTML = buildHTML(studentId);
+  const [cardHTML, setCardHTML] = useState(rawCardHTML);
+
+  useEffect(() => {
+    let active = true;
+    fitLongNames(rawCardHTML).then(res => {
+      if (active) setCardHTML(res);
+    });
+    return () => {
+      active = false;
+    };
+  }, [rawCardHTML, caps]);
+
   const pageHTML = useMemo(
     () => (receipt ? buildReceiptPageHTML(cardHTML) : buildCardPageHTML(cardHTML, mult)),
-    [cardHTML, mult, receipt]
+    [cardHTML, mult, receipt, caps]
   );
   const noticeText = notice ? notice(studentId) : '';
 

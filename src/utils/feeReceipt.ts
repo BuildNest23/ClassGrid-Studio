@@ -140,6 +140,8 @@ function prettyShortDate(key: string): string {
 
 const RECEIPT_CSS = `
 .fr{width:90mm;margin:0 auto;background:#fff;color:#1c1917;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:9pt;line-height:1.3;-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid;page-break-inside:avoid}
+.caps-on .fr, .caps-on.fr, .caps-on .print-sheet { text-transform: uppercase; }
+.caps-on .fr .cg-nocap, .caps-on.fr .cg-nocap, .caps-on .print-sheet .cg-nocap { text-transform: none; }
 .fr *{box-sizing:border-box}
 .fr b{font-weight:700}
 .fr-row,.fr-tl,.fr-meta,.fr-sigs{display:flex;justify-content:space-between;align-items:flex-start;gap:3mm}
@@ -275,7 +277,7 @@ export function buildFeeReceiptHTML(c: ReceiptCtx, studentId: string): string {
   const stamp = paidInFull ? '<div class="fr-stampwrap"><span class="fr-stamp">PAID IN FULL</span></div>' : '';
   const thanks = (c.thanks || '').trim();
 
-  return `<div class="fr fr-${c.style}${wmOn ? ' cg-wm-host' : ''}"><style>${RECEIPT_CSS}</style>
+  return `<div class="fr print-sheet fr-${c.style}${wmOn ? ' cg-wm-host' : ''}"><style>${RECEIPT_CSS}</style>
     ${wmOn ? watermarkHTML(data.schoolLogo, wm.receipt) : ''}
     <div class="fr-head">
       ${logo}
@@ -285,15 +287,15 @@ export function buildFeeReceiptHTML(c: ReceiptCtx, studentId: string): string {
     <div class="fr-body">
       <div class="fr-meta"><span>${c.style === 'a' ? 'Receipt No' : 'No'}: <b>${esc(receiptNumber(data, studentId, fundId))}</b></span><span>Date: <b>${esc(prettyShortDate(todayISO()))}</b></span></div>
       <div class="fr-stu">
-        <div class="fr-stu-name">${esc(s.name || '—')}</div>
-        ${s.fatherName ? `<div>S/D of ${esc(s.fatherName)}</div>` : ''}
+        <div class="fr-stu-name"><span class="cg-fit">${esc(s.name || '—')}</span></div>
+        ${s.fatherName ? `<div>S/D of <span class="cg-fit">${esc(s.fatherName)}</span></div>` : ''}
         ${klass ? `<div>${esc(klass)}</div>` : ''}
       </div>
       <div class="fr-rows">${rows}</div>
       <div class="fr-tot">${totals}</div>
       ${stamp}
       <div class="fr-sigs"><div class="fr-sig" style="flex:0 0 55%;margin-left:auto;">Received by</div></div>
-      ${thanks ? `<div class="fr-thanks">${esc(thanks)}</div>` : ''}
+      ${thanks ? `<div class="fr-thanks cg-nocap">${esc(thanks)}</div>` : ''}
     </div>
   </div>`;
 }

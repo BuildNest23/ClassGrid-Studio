@@ -2,6 +2,8 @@ import { PrintSizeKey } from '../types';
 import { PRINT_SIZES } from './helpers';
 import { Capacitor } from '@capacitor/core';
 import { Printer } from '@capgo/capacitor-printer';
+import { loadCapsPrint } from './capsPrint';
+import { fitLongNames } from './fitText';
 
 /**
  * Extracts a human-friendly document title from HTML content for the Android print job / default PDF file name.
@@ -89,6 +91,16 @@ const BASE_PRINT_CSS = `
   .print-sheet:last-child {
     page-break-after: auto;
     break-after: auto;
+  }
+  .caps-on .print-sheet,
+  .caps-on.cg-page .print-sheet,
+  .caps-on.print-sheet {
+    text-transform: uppercase;
+  }
+  .caps-on .print-sheet .cg-nocap,
+  .caps-on.cg-page .print-sheet .cg-nocap,
+  .caps-on.print-sheet .cg-nocap {
+    text-transform: none;
   }
   .print-header-inner {
     display: flex !important;
@@ -372,6 +384,9 @@ function buildStandalonePrintHTML(
     ? ' @page { @bottom-center { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #555; font-family: Arial, sans-serif; } }'
     : '';
 
+  const isCaps = loadCapsPrint();
+  const capsClass = isCaps ? ' class="caps-on"' : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -390,7 +405,7 @@ function buildStandalonePrintHTML(
   </style>
 </head>
 <body>
-  <div id="printArea" style="display:block; --mult:${mult};">
+  <div id="printArea"${capsClass} style="display:block; --mult:${mult};">
     ${contentHTML}
   </div>
 </body>
@@ -415,7 +430,12 @@ export async function triggerPrint(
 ): Promise<boolean> {
   const mult = (PRINT_SIZES[printSize] || PRINT_SIZES.m).mult;
   const finalOrientation = (forceOrientation || orientation || 'portrait') as 'portrait' | 'landscape';
+
+  // Run long names auto-fit measurement pre-pass so names shrink instead of overflowing columns
+  contentHTML = await fitLongNames(contentHTML);
+
   const docTitle = extractDocumentTitle(contentHTML);
+  const isCaps = loadCapsPrint();
 
   // Native mobile runtime: Use Capacitor native print manager
   if (Capacitor.isNativePlatform()) {
@@ -445,6 +465,11 @@ export async function triggerPrint(
   printArea.style.setProperty('--mult', String(mult));
   printArea.innerHTML = contentHTML;
   printArea.style.display = 'block';
+  if (isCaps) {
+    printArea.classList.add('caps-on');
+  } else {
+    printArea.classList.remove('caps-on');
+  }
 
   let styleEl = document.getElementById('printPageStyle') as HTMLStyleElement | null;
   if (!styleEl) {
@@ -476,5 +501,6 @@ export function cleanupPrintArea() {
   if (printArea) {
     printArea.innerHTML = '';
     printArea.style.display = 'none';
+    printArea.classList.remove('caps-on');
   }
 }

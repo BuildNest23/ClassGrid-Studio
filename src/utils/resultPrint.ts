@@ -136,7 +136,7 @@ function headerHTML(c: ResultPrintCtx, title: string, noLogo = false, hideClassI
       <div class="ps2-head-text">
         <h1>${esc(d.schoolName)}</h1>
         ${line ? `<div class="ps2-head-sub">${line}</div>` : ''}
-        ${note ? `<div class="ps2-head-sub ps2-head-note">${note}</div>` : ''}
+        ${note ? `<div class="ps2-head-sub ps2-head-note cg-nocap">${note}</div>` : ''}
       </div>
       ${spacer}
     </div>
@@ -168,18 +168,18 @@ function footerHTML(c: ResultPrintCtx): string {
   const note = c.data.printNote ? esc(c.data.printNote) : '';
   if (c.style === 'a') {
     if (!text && !note) return '';
-    return `<div class="ps2-foot">${text ? `<span>${esc(text)}</span>` : ''}${note ? `<span class="ps2-foot-chip">${note}</span>` : ''}</div>`;
+    return `<div class="ps2-foot cg-nocap">${text ? `<span>${esc(text)}</span>` : ''}${note ? `<span class="ps2-foot-chip cg-nocap">${note}</span>` : ''}</div>`;
   }
   if (!text) return '';
-  return `<div class="ps2-foot"><span>${esc(text)}</span></div>`;
+  return `<div class="ps2-foot cg-nocap"><span>${esc(text)}</span></div>`;
 }
 
 function rankBadge(c: ResultPrintCtx, rank: number, hasData: boolean): string {
   if (!hasData) return '—';
   if (c.style === 'a' && rank >= 1 && rank <= 3) {
-    return `<span class="ps2-medal ps2-medal-${rank}">${rank}</span>`;
+    return `<span class="ps2-medal ps2-medal-${rank} cg-nocap">${rank}</span>`;
   }
-  return esc(ordinal(rank));
+  return `<span class="cg-nocap">${esc(ordinal(rank))}</span>`;
 }
 
 function resultTag(c: ResultPrintCtx, r: ResultCalc): string {
@@ -224,7 +224,7 @@ export function buildClassResultHTML(
         .join('');
       return `<tr>
         <td class="num">${esc(s.rollNo || '—')}</td>
-        <td class="name">${esc(s.name || '—')}</td>
+        <td class="name"><span class="cg-fit">${esc(s.name || '—')}</span></td>
         ${markCells}
         <td class="num ps2-strong">${r.total}</td>
         <td class="num">${hasMarks(r) ? fmtPct(r.pct) : '—'}</td>
@@ -322,7 +322,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
               ? `<div class="ps2-pct-num">${fmtPct(pct)}</div><div class="ps2-bar"><i style="width:${Math.min(100, pct)}%"></i></div>`
               : fmtPct(pct);
           return `<tr>
-            <td class="left">${esc(sub.name)}</td>
+            <td class="left"><span class="cg-fit">${esc(sub.name)}</span></td>
             <td>${mx}</td>
             <td class="ps2-strong${failed ? ' ps2-failmark' : ''}">${esc(shown)}</td>
             <td class="pctcell">${pctHTML}</td>
@@ -330,7 +330,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
         })
         .join('');
 
-      const rankText = hasMarks(r) ? esc(ordinal(item.rank)) : '—';
+      const rankText = hasMarks(r) ? `<span class="cg-nocap">${esc(ordinal(item.rank))}</span>` : '—';
       const resWord = r.passed ? 'PASS' : 'FAIL';
       const resCls = r.passed ? 'ps2-res-pass' : 'ps2-res-fail';
 
@@ -339,14 +339,14 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
       const idBlock = `<div class="ps2-idbox">
           <div class="ps2-avatar">${initial}</div>
           <div class="ps2-idgrid">
-            <div><label>Name</label><b>${esc(s.name || '—')}</b></div>
-            <div><label>Father Name</label><b>${esc(s.fatherName || '—')}</b></div>
+            <div><label>Name</label><b><span class="cg-fit">${esc(s.name || '—')}</span></b></div>
+            <div><label>Father Name</label><b><span class="cg-fit">${esc(s.fatherName || '—')}</span></b></div>
             <div><label>Roll No</label><b>${esc(s.rollNo || '—')}</b></div>
             <div><label>Adm. No</label><b>${esc(s.admissionNo || '—')}</b></div>
           </div>
         </div>`;
 
-      const rankSuffix = c.style === 'a' && hasMarks(r) ? ` <small>of ${total}</small>` : '';
+      const rankSuffix = c.style === 'a' && hasMarks(r) ? ` <small class="cg-nocap">of ${total}</small>` : '';
       return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card${wmOn ? ' cg-wm-host' : ''}" style="${cardVars}">
         ${wmOn ? watermarkHTML(data.schoolLogo, wm.result) : ''}
         <div class="ps2-cardframe">
@@ -369,7 +369,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
           </div>
           <div class="ps2-remarks">
             <label>${c.style === 'a' ? 'Teacher Remarks' : 'Remarks'}</label>
-            <div class="ps2-remarks-text">${esc(remark)}</div>
+            <div class="ps2-remarks-text cg-nocap">${esc(remark)}</div>
           </div>
           <div class="ps2-spacer"></div>
           ${sigHTML('')}
@@ -407,7 +407,7 @@ export function buildBlankReportCardHTML(c: ResultPrintCtx): string {
   const subRows = asmt.subjects
     .map(
       sub => `<tr style="height:${rowMm}mm;">
-        <td class="left">${esc(sub.name)}</td>
+        <td class="left"><span class="cg-fit">${esc(sub.name)}</span></td>
         <td>${Number(sub.max) || 0}</td>
         <td style="${cell}">&nbsp;</td>
       </tr>`
@@ -438,7 +438,7 @@ export function buildBlankReportCardHTML(c: ResultPrintCtx): string {
       </div>
       <div class="ps2-remarks">
         <label>${c.style === 'a' ? 'Teacher Remarks' : 'Remarks'}</label>
-        <div class="ps2-remarks-text">&nbsp;</div>
+        <div class="ps2-remarks-text cg-nocap">&nbsp;</div>
       </div>
       <div class="ps2-spacer"></div>
       ${sigHTML('')}
@@ -470,14 +470,14 @@ export function buildMeritListHTML(c: ResultPrintCtx): string {
         ? '—'
         : c.style === 'a'
         ? top
-          ? `<span class="ps2-medal ps2-medal-${item.rank}">${item.rank}</span>`
-          : esc(ordinal(item.rank))
-        : esc(ordinal(item.rank)) + (top ? ' ★' : '');
+          ? `<span class="ps2-medal ps2-medal-${item.rank} cg-nocap">${item.rank}</span>`
+          : `<span class="cg-nocap">${esc(ordinal(item.rank))}</span>`
+        : `<span class="cg-nocap">${esc(ordinal(item.rank))}</span>` + (top ? ' ★' : '');
       return `<tr class="${top && c.style === 'b' ? 'ps2-toprow' : ''}">
         <td class="num">${rankCell}</td>
         <td class="num">${esc(s.rollNo || '—')}</td>
-        <td class="name ps2-namebold">${esc(s.name || '—')}</td>
-        <td class="name">${esc(s.fatherName || '—')}</td>
+        <td class="name ps2-namebold"><span class="cg-fit">${esc(s.name || '—')}</span></td>
+        <td class="name"><span class="cg-fit">${esc(s.fatherName || '—')}</span></td>
         <td class="num ps2-strong">${r.total}</td>
         <td class="num">${pctCell(c, r)}</td>
         <td class="num">${resultTag(c, r)}</td>

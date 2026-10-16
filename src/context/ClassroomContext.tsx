@@ -1021,7 +1021,7 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         <h1>${esc(data.schoolName)}</h1>
         ${line1 ? `<div class="print-sub">${line1}</div>` : ''}
         ${yearSub ? `<div class="print-sub2">${yearSub}</div>` : ''}
-        ${noteLine ? `<div class="print-sub2" style="font-weight:700">${noteLine}</div>` : ''}
+        ${noteLine ? `<div class="print-sub2 cg-nocap" style="font-weight:700">${noteLine}</div>` : ''}
         <div class="sheet-title">${esc(title)}</div>
         ${subline ? `<div class="print-sub2" style="margin-top:1mm;font-weight:700">${subline}</div>` : ''}
       </div>

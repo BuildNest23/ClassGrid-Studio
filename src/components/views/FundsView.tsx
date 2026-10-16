@@ -378,11 +378,11 @@ export const FundsView: React.FC = () => {
       return `<tr>
         <td class="center">${i + 1}</td>
         <td class="center font-mono">${esc(s.rollNo || "—")}</td>
-        <td class="name">${esc(s.name || "—")}</td>
+        <td class="name"><span class="cg-fit">${esc(s.name || "—")}</span></td>
         <td class="center ${amtCls}">${esc(amtVal)}</td>
         <td class="center ${statCls}">${statTxt}</td>
         <td class="center">${esc(p.date || "—")}</td>
-        <td>${esc(p.note || "")}</td>
+        <td class="cg-nocap">${esc(p.note || "")}</td>
       </tr>`;
     }).join("");
 
@@ -406,7 +406,7 @@ export const FundsView: React.FC = () => {
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <div style="margin-top:3mm;font-size:9.5pt;font-weight:700">${totalLine}</div>
+      <div class="cg-nocap" style="margin-top:3mm;font-size:9.5pt;font-weight:700">${totalLine}</div>
     </div>`;
 
     const ok = await triggerPrint(fullPrintHTML, "portrait", data.printSize, data.forceOrientation);
@@ -449,10 +449,10 @@ export const FundsView: React.FC = () => {
           return `<tr>
             <td class="center">${i + 1}</td>
             <td class="center font-mono">${esc(row.s.rollNo || "—")}</td>
-            <td class="name">${esc(row.s.name || "—")}</td>
+            <td class="name"><span class="cg-fit">${esc(row.s.name || "—")}</span></td>
             <td class="center">${esc(row.st.amount ? String(row.st.amount) : "—")}</td>
             <td class="center font-bold" style="color:#991B1B">${esc(owed)}</td>
-            <td>${esc(p.note || "")}</td>
+            <td class="cg-nocap">${esc(p.note || "")}</td>
           </tr>`;
         }).join("")}</tbody>
       </table>`;

@@ -2,6 +2,7 @@
 // and a share-able file. No extra libraries: the card is drawn through an SVG <foreignObject>.
 
 import { exportImageBlob, exportFileBlob } from './nativeFileExport';
+import { loadCapsPrint } from './capsPrint';
 
 export const CARD_W_PX = 794;   // A4 width at 96 dpi
 export const CARD_H_PX = 1123;  // A4 height at 96 dpi
@@ -40,6 +41,7 @@ function collectCardCss(): string {
 /** Full HTML document of one A4 page containing the card. Used for the preview and for the image. */
 export function buildCardPageHTML(cardHTML: string, mult: number): string {
   const css = collectCardCss();
+  const capsClass = loadCapsPrint() ? ' caps-on' : '';
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 ${css}
 html,body{margin:0;padding:0;background:#fff;}
@@ -47,18 +49,19 @@ html,body{margin:0;padding:0;background:#fff;}
   -webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .cg-page .print-sheet.ps2-port{min-height:${CARD_H_PX - 92}px !important;}
 .cg-page .print-sheet.ps2-card{height:${CARD_H_PX - 92}px !important;min-height:0 !important;}
-</style></head><body><div class="cg-page">${cardHTML}</div></body></html>`;
+</style></head><body><div class="cg-page${capsClass}">${cardHTML}</div></body></html>`;
 }
 
 export const RECEIPT_PAGE_W_PX = 380; // narrow page used for fee receipts (receipt is 90 mm = about 340 px)
 
 /** Narrow page that fits its content (fee receipts). Height is measured after it loads. */
 export function buildReceiptPageHTML(cardHTML: string): string {
+  const capsClass = loadCapsPrint() ? ' caps-on' : '';
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 html,body{margin:0;padding:0;background:#fff;}
 .cg-page{width:${RECEIPT_PAGE_W_PX}px;box-sizing:border-box;padding:16px 0;background:#fff;
   -webkit-print-color-adjust:exact;print-color-adjust:exact;}
-</style></head><body><div class="cg-page">${cardHTML}</div></body></html>`;
+</style></head><body><div class="cg-page${capsClass}">${cardHTML}</div></body></html>`;
 }
 
 /** Draws the page shown in an iframe into a canvas (2x for sharp text). */
