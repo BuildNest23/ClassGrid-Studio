@@ -1248,7 +1248,7 @@ export const ResultsView: React.FC = () => {
           <SubjectEntryModal
             key={sub.id}
             subject={sub}
-            students={sortedStudents.map(x => ({ id: x.id, rollNo: x.rollNo, value: (res[x.id] || {})[sub.id] }))}
+            students={sortedStudents.map(x => ({ id: x.id, rollNo: x.rollNo, name: x.name, value: (res[x.id] || {})[sub.id] }))}
             onSave={entries => {
               handleBulkMarks(entries.map(e => ({ ...e, subId: sub.id })));
               toast(`${sub.name} marks saved.`, "success");
@@ -1367,7 +1367,8 @@ const MarkBox: React.FC<{
   onEnter: () => void;
   inputRef: (el: HTMLInputElement | null) => void;
   autoFocus?: boolean;
-}> = ({ text, max, onText, onEnter, inputRef, autoFocus }) => {
+  hideMsg?: boolean;
+}> = ({ text, max, onText, onEnter, inputRef, autoFocus, hideMsg }) => {
   const st = fieldState(text, max);
   const absent = /^a$/i.test(text.trim());
   return (
@@ -1410,8 +1411,8 @@ const MarkBox: React.FC<{
       >
         A
       </button>
-      {st === 'over' && <span className="text-[11px] font-semibold text-[#B4791F]">max {max}</span>}
-      {st === 'invalid' && <span className="text-[11px] font-semibold text-[#B23A32]">numbers or A only</span>}
+      {!hideMsg && st === 'over' && <span className="text-[11px] font-semibold text-[#B4791F]">max {max}</span>}
+      {!hideMsg && st === 'invalid' && <span className="text-[11px] font-semibold text-[#B23A32]">numbers or A only</span>}
     </div>
   );
 };
@@ -1513,7 +1514,7 @@ const StudentEntryModal: React.FC<{
 
 const SubjectEntryModal: React.FC<{
   subject: { id: string; name: string; max: number };
-  students: { id: string; rollNo: string; value: number | 'A' | undefined }[];
+  students: { id: string; rollNo: string; name: string; value: number | 'A' | undefined }[];
   onSave: (entries: { sid: string; text: string }[]) => void;
   onClose: () => void;
 }> = ({ subject, students, onSave, onClose }) => {
@@ -1548,22 +1549,49 @@ const SubjectEntryModal: React.FC<{
       }
     >
       <div className="space-y-1.5">
-        {students.map((s, i) => (
-          <div
-            key={s.id}
-            className="flex items-center justify-between gap-3 border-b border-[#F5F5F4] dark:border-[#292524] pb-1.5"
-          >
-            <span className="font-mono font-bold text-sm w-14 text-[#1C1917] dark:text-[#F5F5F4]">{s.rollNo || "—"}</span>
-            <MarkBox
-              text={draft[s.id] ?? ""}
-              max={subject.max}
-              onText={t => setDraft(d => ({ ...d, [s.id]: t }))}
-              onEnter={() => (i + 1 < students.length ? refs.current[i + 1]?.focus() : saveRef.current?.focus())}
-              inputRef={el => (refs.current[i] = el)}
-              autoFocus={i === 0}
-            />
-          </div>
-        ))}
+        {students.map((s, i) => {
+          const st = fieldState(draft[s.id] ?? "", subject.max);
+          const nm = s.name || "(no name)";
+          return (
+            <div
+              key={s.id}
+              className="flex items-center gap-3 border-b border-[#F5F5F4] dark:border-[#292524] pb-1.5"
+            >
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                <span className="shrink-0 w-8 font-mono font-bold text-sm text-[#1C1917] dark:text-[#F5F5F4]">
+                  {s.rollNo || "—"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="font-semibold text-[#1C1917] dark:text-[#F5F5F4] leading-tight break-words"
+                    style={{
+                      fontSize: nm.length > 34 ? 11 : 14,
+                      display: '-webkit-box',
+                      WebkitBoxOrient: 'vertical',
+                      WebkitLineClamp: 2,
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {nm}
+                  </div>
+                  {st === 'over' && <div className="text-[10px] font-semibold text-[#B4791F]">above max {subject.max}</div>}
+                  {st === 'invalid' && <div className="text-[10px] font-semibold text-[#B23A32]">numbers or A only</div>}
+                </div>
+              </div>
+              <div className="shrink-0">
+                <MarkBox
+                  text={draft[s.id] ?? ""}
+                  max={subject.max}
+                  hideMsg
+                  onText={t => setDraft(d => ({ ...d, [s.id]: t }))}
+                  onEnter={() => (i + 1 < students.length ? refs.current[i + 1]?.focus() : saveRef.current?.focus())}
+                  inputRef={el => (refs.current[i] = el)}
+                  autoFocus={i === 0}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </EntryShell>
   );
