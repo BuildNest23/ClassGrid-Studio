@@ -150,6 +150,12 @@ function infoBarHTML(c: ResultPrintCtx, items: string[]): string {
 }
 
 function sigHTML(middle: string): string {
+  if (!middle) {
+    return `<div class="ps2-sigs" style="grid-template-columns:1fr 1fr;gap:40mm;">
+    <div><span>Class Incharge</span></div>
+    <div><span>Principal</span></div>
+  </div>`;
+  }
   return `<div class="ps2-sigs">
     <div><span>Class Incharge</span></div>
     <div><span>${middle}</span></div>
@@ -375,7 +381,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
             <div class="ps2-remarks-text">${esc(remark)}</div>
           </div>
           <div class="ps2-spacer"></div>
-          ${sigHTML('Parent / Guardian')}
+          ${sigHTML('')}
           ${footerHTML(c)}
         </div>
       </div>`;
@@ -444,7 +450,7 @@ export function buildBlankReportCardHTML(c: ResultPrintCtx): string {
         <div class="ps2-remarks-text">&nbsp;</div>
       </div>
       <div class="ps2-spacer"></div>
-      ${sigHTML('Parent / Guardian')}
+      ${sigHTML('')}
       ${footerHTML(c)}
     </div>
   </div>`;
