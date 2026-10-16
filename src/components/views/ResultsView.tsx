@@ -733,11 +733,6 @@ export const ResultsView: React.FC = () => {
               <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4]">
                 {activeAsmt.name}
               </h2>
-              {isLocked && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
-                  <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Locked
-                </span>
-              )}
             </div>
             <span className="text-[11px] text-[#78716C] dark:text-[#A8A29E]">
               Pass: <b>{activeAsmt.passPercent}%</b> • Entered: <b>{entered}/{data.students.length}</b> • Total max: <b>{totalMax}</b>
@@ -766,11 +761,6 @@ export const ResultsView: React.FC = () => {
               <h2 className="text-xl font-bold text-[#1C1917] dark:text-[#F5F5F4]">
                 {activeAsmt.name}
               </h2>
-              {isLocked && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
-                  <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Locked
-                </span>
-              )}
             </div>
 
             <div className="flex items-center gap-3 text-xs flex-wrap">
@@ -992,11 +982,6 @@ export const ResultsView: React.FC = () => {
             <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">
               Marks Sheet
             </h3>
-            {isLocked && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
-                <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Locked
-              </span>
-            )}
           </div>
           <button
             type="button"
@@ -1022,22 +1007,6 @@ export const ResultsView: React.FC = () => {
           </button>
         </div>
 
-        {isLocked && (
-          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200">
-            <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span>Marks grid is locked against accidental changes.</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleToggleLock}
-              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white dark:bg-[#1C1917] border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40 cursor-pointer shrink-0"
-            >
-              Unlock
-            </button>
-          </div>
-        )}
-
         {activeAsmt.subjects.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <EntryToggle
@@ -1051,7 +1020,7 @@ export const ResultsView: React.FC = () => {
                 if (v) setSubjectEntryOn(false);
               }}
               title="Student-wise entry"
-              hint={isLocked ? "Grid is locked (unlock to use quick entry)" : "Tap a student's name to enter all their subjects"}
+              hint="Tap a student's name to enter all their subjects"
             />
             <EntryToggle
               on={subjectEntryOn}
@@ -1064,7 +1033,7 @@ export const ResultsView: React.FC = () => {
                 if (v) setStudentEntryOn(false);
               }}
               title="Subject-wise entry"
-              hint={isLocked ? "Grid is locked (unlock to use quick entry)" : "Tap a subject heading to enter marks by Roll No"}
+              hint="Tap a subject heading to enter marks by Roll No"
             />
           </div>
         )}
