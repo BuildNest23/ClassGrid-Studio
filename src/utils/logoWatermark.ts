@@ -111,7 +111,9 @@ const WM_CSS = `.cg-wm-host{position:relative !important;z-index:0}
 .cg-wm img{display:block;max-width:100%;max-height:100%;object-fit:contain;-webkit-filter:grayscale(1);filter:grayscale(1);-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .cg-wm-host .ps2-table td:not(.ps2-failmark){background:transparent !important}
 .cg-wm-host .ps2-table tbody tr:nth-child(even) td:not(.ps2-failmark){background:rgba(242,248,244,.55) !important}
-.ps2-b.cg-wm-host .ps2-table tbody tr:nth-child(even) td:not(.ps2-failmark){background:transparent !important}`;
+.ps2-b.cg-wm-host .ps2-table tbody tr:nth-child(even) td:not(.ps2-failmark){background:transparent !important}
+.ps2-b.cg-wm-host .ps2-table td.ps2-failmark{background:transparent !important}
+.ps2-b.cg-wm-host .ps2-table th,.ps2-b.cg-wm-host .ps2-idbox{background:transparent !important}`;
 
 /**
  * The watermark layer. Put it as the FIRST child of the card (the card gets the `cg-wm-host` class).
