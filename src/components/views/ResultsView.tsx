@@ -25,6 +25,7 @@ import {
   savePrintFooter,
   buildClassResultHTML,
   buildReportCardsHTML,
+  buildBlankReportCardHTML,
   buildMeritListHTML,
 } from '../../utils/resultPrint';
 import {
@@ -560,6 +561,15 @@ export const ResultsView: React.FC = () => {
     if (!ok) toast("Could not open the print dialog. Try again.", "error");
   };
 
+  const handlePrintBlankCard = async () => {
+    if (!activeAsmt.subjects.length) {
+      toast("Add subjects first.", "error");
+      return;
+    }
+    const ok = await triggerPrint(buildBlankReportCardHTML(printCtx()), "portrait", data.printSize, data.forceOrientation, false);
+    if (!ok) toast("Could not open the print dialog. Try again.", "error");
+  };
+
   const handlePrintMeritList = async () => {
     if (!activeAsmt.subjects.length) {
       toast("Add subjects first.", "error");
@@ -1037,7 +1047,7 @@ export const ResultsView: React.FC = () => {
           placeholder="Footer text for prints (optional)"
           className="w-full px-3 py-2 text-[13px] rounded-xl border border-[#E7E5E4] dark:border-[#44403C] bg-white dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#0B5D45]"
         />
-        <ActionGrid cols={3}>
+        <ActionGrid cols={4}>
           <ActionButton
             variant="primary"
             icon={Printer}
@@ -1059,6 +1069,14 @@ export const ResultsView: React.FC = () => {
             onClick={handlePrintMeritList}
           >
             Merit List
+          </ActionButton>
+          <ActionButton
+            variant="secondary"
+            icon={Printer}
+            onClick={handlePrintBlankCard}
+            fullWidth="mobile-only"
+          >
+            Blank Card
           </ActionButton>
         </ActionGrid>
       </div>
