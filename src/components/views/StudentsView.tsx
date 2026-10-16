@@ -356,7 +356,7 @@ export const StudentsView: React.FC = () => {
       )}
 
       {/* Sticky Student Form Card */}
-      <div className="bg-white dark:bg-[#1C1917] border-2 border-[#B91C1C] dark:border-[#F87171] rounded-2xl p-3.5 shadow-md sticky top-[60px] z-10">
+      <div className="bg-white dark:bg-[#1C1917] border-2 border-[#B91C1C] dark:border-[#F87171] rounded-2xl p-3.5 shadow-md sticky top-[60px] [.header-hidden_&]:top-0 transition-[top] duration-200 z-10">
         <h3 className="text-sm font-bold text-[#B91C1C] dark:text-[#FCA5A5] mb-2 flex justify-between items-center">
           <span className="flex items-center gap-1.5">
             {editingId ? <Edit2 className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
