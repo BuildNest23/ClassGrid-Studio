@@ -30,6 +30,7 @@ export interface Assessment {
   passPercent: number;
   subjects: AssessmentSubject[];
   createdAt: number;
+  locked?: boolean;
 }
 
 export interface Fund {

@@ -39,8 +39,17 @@ import {
   BarChart3,
   X,
   Sparkles,
-  Upload
+  Upload,
+  ChevronDown,
+  ChevronRight,
+  Lock,
+  Unlock,
 } from 'lucide-react';
+import {
+  loadResultsCollapse,
+  saveResultsCollapse,
+  ResultsCollapseState,
+} from '../../utils/resultsCollapse';
 
 export const ResultsView: React.FC = () => {
   const {
@@ -94,6 +103,15 @@ export const ResultsView: React.FC = () => {
     () => getNameColWidth(sortedStudents.map(s => s.name || ""), ["Average →", "Highest →", "Lowest →"]),
     [data.students]
   );
+
+  const [collapse, setCollapse] = useState<ResultsCollapseState>(loadResultsCollapse);
+  const toggleCollapse = (key: keyof ResultsCollapseState) => {
+    setCollapse(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      saveResultsCollapse(next);
+      return next;
+    });
+  };
 
   // 1. ASSESSMENT LIST VIEW
   if (!activeAsmt) {
@@ -259,6 +277,18 @@ export const ResultsView: React.FC = () => {
   const totalMax = activeAsmt.subjects.reduce((sum, s) => sum + (Number(s.max) || 0), 0);
   const entered = assessmentEntryCount(activeAsmt.id);
   const progressPct = data.students.length ? Math.round((entered / data.students.length) * 100) : 0;
+
+  const isLocked = !!activeAsmt.locked;
+  const handleToggleLock = () => {
+    const nextLocked = !isLocked;
+    saveData(prev => ({
+      ...prev,
+      assessments: prev.assessments.map(a =>
+        a.id === activeAsmt.id ? { ...a, locked: nextLocked } : a
+      ),
+    }));
+    toast(nextLocked ? "Assessment grid locked." : "Assessment grid unlocked.", "info");
+  };
 
   // Rename
   const handleRename = async () => {
@@ -683,189 +713,358 @@ export const ResultsView: React.FC = () => {
           >
             ← All Assessments
           </button>
+          <button
+            type="button"
+            onClick={() => toggleCollapse('asmtDetails')}
+            className="text-xs font-bold text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] flex items-center gap-1 cursor-pointer"
+            aria-expanded={!collapse.asmtDetails}
+          >
+            <span>{collapse.asmtDetails ? "Show details" : "Collapse"}</span>
+            {collapse.asmtDetails ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
-        <ActionGrid cols={2}>
-          <ActionButton
-            variant="secondary"
-            icon={Edit3}
-            onClick={handleRename}
-          >
-            Rename
-          </ActionButton>
-          <ActionButton
-            variant="danger"
-            icon={Trash2}
-            onClick={handleDelete}
-          >
-            Delete
-          </ActionButton>
-        </ActionGrid>
-
-        <h2 className="text-xl font-bold text-[#1C1917] dark:text-[#F5F5F4] mt-1">
-          {activeAsmt.name}
-        </h2>
-
-        <div className="flex items-center gap-3 text-xs flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[#78716C] dark:text-[#A8A29E] font-semibold">Pass mark:</span>
-            <SyncInput
-              type="number"
-              min="1"
-              max="100"
-              value={activeAsmt.passPercent}
-              onCommit={handleUpdatePassPercent}
-              className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit"
-            />
-            <span className="text-[#78716C] dark:text-[#A8A29E] font-semibold">%</span>
-          </div>
-
-          <span className="text-[#78716C] dark:text-[#A8A29E]">
-            Entered: <b>{entered}</b> of <b>{data.students.length}</b> • Total max: <b>{totalMax}</b>
-          </span>
-        </div>
-
-        <div className="w-full h-2 bg-[#F5F5F4] dark:bg-[#292524] rounded-full overflow-hidden mt-1">
+        {collapse.asmtDetails ? (
           <div
-            className="h-full bg-[#065F46] transition-all"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
+            onClick={() => toggleCollapse('asmtDetails')}
+            className="pt-1 flex items-center justify-between gap-2 flex-wrap cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4]">
+                {activeAsmt.name}
+              </h2>
+              {isLocked && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
+                  <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Locked
+                </span>
+              )}
+            </div>
+            <span className="text-[11px] text-[#78716C] dark:text-[#A8A29E]">
+              Pass: <b>{activeAsmt.passPercent}%</b> • Entered: <b>{entered}/{data.students.length}</b> • Total max: <b>{totalMax}</b>
+            </span>
+          </div>
+        ) : (
+          <>
+            <ActionGrid cols={2}>
+              <ActionButton
+                variant="secondary"
+                icon={Edit3}
+                onClick={handleRename}
+              >
+                Rename
+              </ActionButton>
+              <ActionButton
+                variant="danger"
+                icon={Trash2}
+                onClick={handleDelete}
+              >
+                Delete
+              </ActionButton>
+            </ActionGrid>
+
+            <div className="flex items-center gap-2 mt-1">
+              <h2 className="text-xl font-bold text-[#1C1917] dark:text-[#F5F5F4]">
+                {activeAsmt.name}
+              </h2>
+              {isLocked && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
+                  <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Locked
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 text-xs flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#78716C] dark:text-[#A8A29E] font-semibold">Pass mark:</span>
+                <SyncInput
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={activeAsmt.passPercent}
+                  onCommit={handleUpdatePassPercent}
+                  disabled={isLocked}
+                  className="w-16 p-1 text-center font-bold text-xs rounded-lg border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit disabled:opacity-50"
+                />
+                <span className="text-[#78716C] dark:text-[#A8A29E] font-semibold">%</span>
+              </div>
+
+              <span className="text-[#78716C] dark:text-[#A8A29E]">
+                Entered: <b>{entered}</b> of <b>{data.students.length}</b> • Total max: <b>{totalMax}</b>
+              </span>
+            </div>
+
+            <div className="w-full h-2 bg-[#F5F5F4] dark:bg-[#292524] rounded-full overflow-hidden mt-1">
+              <div
+                className="h-full bg-[#065F46] transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Subjects Card */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
-        <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">
-          Subjects ({activeAsmt.subjects.length})
-        </h3>
+        <div
+          onClick={() => toggleCollapse('subjects')}
+          className="flex justify-between items-center gap-2 cursor-pointer select-none"
+        >
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">
+              Subjects ({activeAsmt.subjects.length})
+            </h3>
+            {collapse.subjects && activeAsmt.subjects.length > 0 && (
+              <span className="text-[11px] text-[#78716C] dark:text-[#A8A29E] font-medium hidden sm:inline">
+                Total max: {totalMax} marks
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            className="text-xs font-bold text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] flex items-center gap-1 cursor-pointer"
+            aria-expanded={!collapse.subjects}
+          >
+            <span>{collapse.subjects ? "Edit subjects" : "Collapse"}</span>
+            {collapse.subjects ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
 
-        {activeAsmt.subjects.length === 0 ? (
-          <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
-            No subjects configured yet. Add subjects below to start recording marks.
-          </p>
+        {collapse.subjects ? (
+          <div
+            onClick={() => toggleCollapse('subjects')}
+            className="pt-1 text-xs text-[#78716C] dark:text-[#A8A29E] cursor-pointer flex items-center justify-between gap-2 flex-wrap"
+          >
+            {activeAsmt.subjects.length === 0 ? (
+              <span>No subjects added yet. Click to add subjects.</span>
+            ) : (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {activeAsmt.subjects.slice(0, 6).map(sub => (
+                  <span
+                    key={sub.id}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C] text-[11px] font-semibold max-w-[140px] truncate"
+                    title={`${sub.name} (Max: ${sub.max})`}
+                  >
+                    <span className="truncate">{sub.name}</span>
+                    <span className="text-[#A8A29E] shrink-0">({sub.max})</span>
+                  </span>
+                ))}
+                {activeAsmt.subjects.length > 6 && (
+                  <span className="text-[11px] font-bold text-[#78716C] dark:text-[#A8A29E]">
+                    +{activeAsmt.subjects.length - 6} more
+                  </span>
+                )}
+              </div>
+            )}
+            <span className="text-[11px] text-[#2E5A8A] dark:text-[#9CC3EA] font-semibold shrink-0">
+              {activeAsmt.subjects.length} configured (Max: {totalMax})
+            </span>
+          </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {activeAsmt.subjects.map(sub => (
-              <div
-                key={sub.id}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#0C0A09] text-xs font-bold"
-              >
-                <SyncInput
+          <>
+            {activeAsmt.subjects.length === 0 ? (
+              <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
+                No subjects configured yet. Add subjects below to start recording marks.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {activeAsmt.subjects.map(sub => (
+                  <div
+                    key={sub.id}
+                    className="min-w-0 flex items-center justify-between gap-1.5 p-2 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] bg-[#FAFAF9] dark:bg-[#0C0A09] text-xs font-bold"
+                  >
+                    <div className="min-w-0 flex-1" title={sub.name}>
+                      <SyncInput
+                        type="text"
+                        value={sub.name}
+                        onCommit={v => handleRenameSubject(sub.id, v)}
+                        disabled={isLocked}
+                        className="w-full bg-transparent border-0 font-bold focus:outline-none text-inherit truncate"
+                        placeholder="Subject"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="text-[#78716C] dark:text-[#A8A29E] text-[10px]">max</span>
+                      <SyncInput
+                        type="number"
+                        min="1"
+                        value={sub.max}
+                        onCommit={v => handleChangeSubjectMax(sub.id, v)}
+                        disabled={isLocked}
+                        className="w-11 text-center bg-white dark:bg-[#1C1917] border border-[#D6D3D1] dark:border-[#44403C] rounded-md px-1 py-0.5 text-xs text-inherit"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSubject(sub.id, sub.name)}
+                        disabled={isLocked}
+                        className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] ml-0.5 ${
+                          isLocked
+                            ? 'opacity-30 cursor-not-allowed bg-stone-200 dark:bg-stone-800 text-stone-500'
+                            : 'bg-[#F8E4E1] text-[#7F1D1D] hover:bg-[#FCA5A5] cursor-pointer'
+                        }`}
+                        title={isLocked ? "Unlock grid to edit subjects" : "Remove subject"}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={handleAddSubject} className="space-y-2.5 pt-2 border-t border-[#E7E5E4] dark:border-[#44403C]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
                   type="text"
-                  value={sub.name}
-                  onCommit={v => handleRenameSubject(sub.id, v)}
-                  className="bg-transparent border-0 font-bold focus:outline-none w-20 sm:w-24 text-inherit"
+                  value={newSubName}
+                  placeholder="Subject name"
+                  disabled={isLocked}
+                  onChange={e => setNewSubName(e.target.value)}
+                  className="w-full p-2.5 text-xs rounded-xl border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit disabled:opacity-50"
                 />
-                <span className="text-[#78716C] dark:text-[#A8A29E] text-[10px]">max</span>
-                <SyncInput
+                <input
                   type="number"
                   min="1"
-                  value={sub.max}
-                  onCommit={v => handleChangeSubjectMax(sub.id, v)}
-                  className="w-12 text-center bg-white dark:bg-[#1C1917] border border-[#D6D3D1] dark:border-[#44403C] rounded-md px-1 text-inherit"
+                  value={newSubMax}
+                  placeholder="Max marks"
+                  disabled={isLocked}
+                  onChange={e => setNewSubMax(e.target.value)}
+                  className="w-full p-2.5 text-xs rounded-xl border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit disabled:opacity-50"
                 />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveSubject(sub.id, sub.name)}
-                  className="w-4 h-4 rounded-full bg-[#F8E4E1] text-[#7F1D1D] flex items-center justify-center text-[10px] ml-1 hover:bg-[#FCA5A5] cursor-pointer"
-                  title="Remove subject"
-                >
-                  <X className="w-2.5 h-2.5" />
-                </button>
               </div>
-            ))}
-          </div>
-        )}
-
-        <form onSubmit={handleAddSubject} className="space-y-2.5 pt-2 border-t border-[#E7E5E4] dark:border-[#44403C]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={newSubName}
-              placeholder="Subject name"
-              onChange={e => setNewSubName(e.target.value)}
-              className="w-full p-2.5 text-xs rounded-xl border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit"
-            />
-            <input
-              type="number"
-              min="1"
-              value={newSubMax}
-              placeholder="Max marks"
-              onChange={e => setNewSubMax(e.target.value)}
-              className="w-full p-2.5 text-xs rounded-xl border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit"
-            />
-          </div>
-          <ActionGrid cols={2}>
-            <ActionButton
-              type="submit"
-              variant="primary"
-              icon={Plus}
-              fullWidth={otherAsmts.length === 0}
-            >
-              Add Subject
-            </ActionButton>
-            {otherAsmts.length > 0 && (
-              <ActionButton
-                type="button"
-                variant="secondary"
-                icon={Copy}
-                onClick={() => setCopyPickerOpen(!copyPickerOpen)}
-              >
-                Copy Subjects
-              </ActionButton>
-            )}
-          </ActionGrid>
-        </form>
-
-        {copyPickerOpen && (
-          <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C] space-y-2">
-            <span className="text-xs font-bold block text-[#78716C] dark:text-[#A8A29E]">
-              Copy subjects from other assessment:
-            </span>
-            <div className="flex gap-2 flex-wrap">
-              {otherAsmts.map(o => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => handleCopySubjects(o.id)}
-                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-white dark:bg-[#1C1917] border border-[#D6D3D1] dark:border-[#44403C] hover:border-[#B91C1C] cursor-pointer"
+              <ActionGrid cols={2}>
+                <ActionButton
+                  type="submit"
+                  variant="primary"
+                  icon={Plus}
+                  disabled={isLocked}
+                  fullWidth={otherAsmts.length === 0}
                 >
-                  {o.name} ({o.subjects.length})
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setCopyPickerOpen(false)}
-                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-transparent text-[#78716C] hover:underline cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+                  Add Subject
+                </ActionButton>
+                {otherAsmts.length > 0 && (
+                  <ActionButton
+                    type="button"
+                    variant="secondary"
+                    icon={Copy}
+                    disabled={isLocked}
+                    onClick={() => setCopyPickerOpen(!copyPickerOpen)}
+                  >
+                    Copy Subjects
+                  </ActionButton>
+                )}
+              </ActionGrid>
+            </form>
+
+            {copyPickerOpen && (
+              <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C] space-y-2">
+                <span className="text-xs font-bold block text-[#78716C] dark:text-[#A8A29E]">
+                  Copy subjects from other assessment:
+                </span>
+                <div className="flex gap-2 flex-wrap">
+                  {otherAsmts.map(o => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => handleCopySubjects(o.id)}
+                      className="px-3 py-1.5 text-xs font-bold rounded-xl bg-white dark:bg-[#1C1917] border border-[#D6D3D1] dark:border-[#44403C] hover:border-[#B91C1C] cursor-pointer"
+                    >
+                      {o.name} ({o.subjects.length})
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setCopyPickerOpen(false)}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl bg-transparent text-[#78716C] hover:underline cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {/* Marks Sheet Table */}
-      <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs">
+      <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
+        <div className="flex justify-between items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">
+              Marks Sheet
+            </h3>
+            {isLocked && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold">
+                <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" /> Locked
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleLock}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer border ${
+              isLocked
+                ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                : 'bg-white dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] border-[#D6D3D1] dark:border-[#44403C] hover:bg-[#FAFAF9] dark:hover:bg-[#292524]'
+            }`}
+            title={isLocked ? "Unlock grid to edit marks" : "Lock grid to prevent accidental changes"}
+          >
+            {isLocked ? (
+              <>
+                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                <span>Locked</span>
+              </>
+            ) : (
+              <>
+                <Unlock className="w-3.5 h-3.5 text-stone-500" />
+                <span>Lock Grid</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {isLocked && (
+          <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between gap-2 text-xs text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Marks grid is locked against accidental changes.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleLock}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-white dark:bg-[#1C1917] border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40 cursor-pointer shrink-0"
+            >
+              Unlock
+            </button>
+          </div>
+        )}
+
         {activeAsmt.subjects.length > 0 && (
-          <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <EntryToggle
               on={studentEntryOn}
               onChange={v => {
+                if (isLocked) {
+                  toast("Grid is locked. Unlock it to enter marks.", "info");
+                  return;
+                }
                 setStudentEntryOn(v);
                 if (v) setSubjectEntryOn(false);
               }}
               title="Student-wise entry"
-              hint="Tap a student's name to enter all their subjects"
+              hint={isLocked ? "Grid is locked (unlock to use quick entry)" : "Tap a student's name to enter all their subjects"}
             />
             <EntryToggle
               on={subjectEntryOn}
               onChange={v => {
+                if (isLocked) {
+                  toast("Grid is locked. Unlock it to enter marks.", "info");
+                  return;
+                }
                 setSubjectEntryOn(v);
                 if (v) setStudentEntryOn(false);
               }}
               title="Subject-wise entry"
-              hint="Tap a subject heading to enter marks by Roll No"
+              hint={isLocked ? "Grid is locked (unlock to use quick entry)" : "Tap a subject heading to enter marks by Roll No"}
             />
           </div>
         )}
@@ -892,9 +1091,17 @@ export const ResultsView: React.FC = () => {
                       {subjectEntryOn ? (
                         <button
                           type="button"
-                          onClick={() => setEntrySubjectId(sub.id)}
-                          title="Enter marks for this subject"
-                          className="w-full rounded-lg px-1.5 py-1 bg-[#E8F0F8] dark:bg-[#1E3550] text-[#2E5A8A] dark:text-[#9CC3EA] border border-[#2E5A8A]/40 font-bold cursor-pointer"
+                          onClick={() => {
+                            if (isLocked) {
+                              toast("Grid is locked. Unlock it to edit marks.", "info");
+                              return;
+                            }
+                            setEntrySubjectId(sub.id);
+                          }}
+                          title={isLocked ? "Grid is locked" : "Enter marks for this subject"}
+                          className={`w-full rounded-lg px-1.5 py-1 bg-[#E8F0F8] dark:bg-[#1E3550] text-[#2E5A8A] dark:text-[#9CC3EA] border border-[#2E5A8A]/40 font-bold ${
+                            isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
                         >
                           {sub.name}
                           <span className="block text-[10px] font-semibold opacity-80">({sub.max}) ✎</span>
@@ -954,8 +1161,18 @@ export const ResultsView: React.FC = () => {
                       <td className={`sc2 p-2 border border-[#E7E5E4] dark:border-[#44403C] text-left font-semibold truncate ${stickyBg}`}>
                         <button
                           type="button"
-                          onClick={() => (studentEntryOn ? setEntryStudentId(s.id) : setCardStudentId(s.id))}
-                          title={studentEntryOn ? "Enter marks" : "Open result card"}
+                          onClick={() => {
+                            if (studentEntryOn) {
+                              if (isLocked) {
+                                toast("Grid is locked. Unlock it to edit marks.", "info");
+                                return;
+                              }
+                              setEntryStudentId(s.id);
+                            } else {
+                              setCardStudentId(s.id);
+                            }
+                          }}
+                          title={studentEntryOn ? (isLocked ? "Grid is locked" : "Enter marks") : "Open result card"}
                           className={`max-w-full truncate text-left font-semibold cursor-pointer hover:underline decoration-dotted underline-offset-2 ${
                             studentEntryOn ? 'text-[#2E5A8A] dark:text-[#9CC3EA]' : ''
                           }`}
@@ -986,23 +1203,29 @@ export const ResultsView: React.FC = () => {
                                 autoComplete="off"
                                 value={displayVal}
                                 onCommit={v => handleMarkChange(s.id, sub.id, v)}
+                                disabled={isLocked}
                                 enterKeyHint="next"
-                                tabIndex={gridTabIndex(sIdx, subIdx, sortedStudents.length)}
-                                onKeyDown={e => gridNavKeyDown(e, 'data-coord', sIdx, subIdx, sortedStudents.length, activeAsmt.subjects.length)}
+                                tabIndex={isLocked ? -1 : gridTabIndex(sIdx, subIdx, sortedStudents.length)}
+                                onKeyDown={e => !isLocked && gridNavKeyDown(e, 'data-coord', sIdx, subIdx, sortedStudents.length, activeAsmt.subjects.length)}
                                 className={`w-10 p-1 text-center font-bold font-mono text-xs rounded border border-transparent focus:border-[#2E5A8A] focus:bg-white dark:focus:bg-[#0C0A09] bg-transparent text-inherit ${
                                   isAbsent ? 'text-[#7F1D1D] font-extrabold' : ''
-                                } ${isOverMax ? 'ring-2 ring-[#B4791F]' : ''}`}
+                                } ${isOverMax ? 'ring-2 ring-[#B4791F]' : ''} ${
+                                  isLocked ? 'cursor-not-allowed opacity-80' : ''
+                                }`}
                                 placeholder="—"
                               />
                               <button
                                 type="button"
                                 tabIndex={-1}
+                                disabled={isLocked}
                                 onClick={() => handleToggleAbsent(s.id, sub.id)}
-                                title="Toggle Absent"
-                                className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors cursor-pointer ${
-                                  isAbsent
-                                    ? 'bg-[#F8E4E1] text-[#7F1D1D] border border-[#B23A32]'
-                                    : 'bg-[#FAFAF9] dark:bg-[#292524] text-[#A8A29E] border border-[#E7E5E4] dark:border-[#44403C] hover:bg-[#F5F5F4]'
+                                title={isLocked ? "Grid is locked" : "Toggle Absent"}
+                                className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center transition-colors ${
+                                  isLocked
+                                    ? 'opacity-40 cursor-not-allowed ' + (isAbsent ? 'bg-[#F8E4E1] text-[#7F1D1D]' : 'bg-[#FAFAF9] dark:bg-[#292524] text-[#A8A29E]')
+                                    : isAbsent
+                                    ? 'bg-[#F8E4E1] text-[#7F1D1D] border border-[#B23A32] cursor-pointer'
+                                    : 'bg-[#FAFAF9] dark:bg-[#292524] text-[#A8A29E] border border-[#E7E5E4] dark:border-[#44403C] hover:bg-[#F5F5F4] cursor-pointer'
                                 }`}
                               >
                                 A
@@ -1040,8 +1263,11 @@ export const ResultsView: React.FC = () => {
                             {r.manual && (
                               <button
                                 type="button"
+                                disabled={isLocked}
                                 onClick={() => handleToggleManualPass(s.id)}
-                                className="px-1.5 py-0.5 rounded text-[10px] bg-[#F5F5F4] dark:bg-[#292524] text-[#78716C] dark:text-[#D6D3D1] hover:bg-[#E7E5E4] cursor-pointer"
+                                className={`px-1.5 py-0.5 rounded text-[10px] bg-[#F5F5F4] dark:bg-[#292524] text-[#78716C] dark:text-[#D6D3D1] ${
+                                  isLocked ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#E7E5E4] cursor-pointer'
+                                }`}
                               >
                                 Undo
                               </button>
@@ -1052,8 +1278,11 @@ export const ResultsView: React.FC = () => {
                             <span className="text-[#7F1D1D] dark:text-[#F0C8C0]">FAIL</span>
                             <button
                               type="button"
+                              disabled={isLocked}
                               onClick={() => handleToggleManualPass(s.id)}
-                              className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FBF0D9] dark:bg-[#3A2E14] text-[#7A5515] dark:text-[#F8E0A0] border border-[#B4791F] hover:bg-[#F5E4C0] cursor-pointer"
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FBF0D9] dark:bg-[#3A2E14] text-[#7A5515] dark:text-[#F8E0A0] border border-[#B4791F] ${
+                                isLocked ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[#F5E4C0] cursor-pointer'
+                              }`}
                             >
                               Pass anyway
                             </button>
@@ -1071,9 +1300,12 @@ export const ResultsView: React.FC = () => {
                           inputMode="text"
                           value={remarksVal}
                           placeholder="—"
+                          disabled={isLocked}
                           onLive={v => handleRemarkChange(s.id, v)}
                           onCommit={() => flushSave()}
-                          className="w-full p-1 text-xs bg-transparent border-0 focus:outline-none focus:bg-white dark:focus:bg-[#0C0A09] rounded"
+                          className={`w-full p-1 text-xs bg-transparent border-0 focus:outline-none focus:bg-white dark:focus:bg-[#0C0A09] rounded ${
+                            isLocked ? 'cursor-not-allowed opacity-80' : ''
+                          }`}
                         />
                       </td>
                     </tr>
@@ -1125,99 +1357,146 @@ export const ResultsView: React.FC = () => {
 
       {/* Edit with AI */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
-        <div>
-          <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">Edit with AI</h3>
-          <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
-            Export this assessment, let an AI write the remarks, then import the file back. Only remarks are changed.
-          </p>
+        <div
+          onClick={() => toggleCollapse('aiEdit')}
+          className="flex justify-between items-center gap-2 cursor-pointer select-none"
+        >
+          <div>
+            <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">Edit with AI</h3>
+            {collapse.aiEdit && (
+              <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
+                Export / import assessment JSON for remarks • Click to expand
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            className="text-xs font-bold text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] flex items-center gap-1 cursor-pointer"
+            aria-expanded={!collapse.aiEdit}
+          >
+            <span>{collapse.aiEdit ? "Open" : "Collapse"}</span>
+            {collapse.aiEdit ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
         </div>
-        <ActionGrid cols={2}>
-          <ActionButton variant="secondary" icon={Sparkles} onClick={handleExportForAi}>
-            Export for AI
-          </ActionButton>
-          <label className="w-full min-h-12 px-2.5 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap transition-colors select-none cursor-pointer bg-stone-50 hover:bg-stone-100 active:bg-stone-200 text-stone-800 border border-stone-200 dark:bg-stone-800/90 dark:hover:bg-stone-700/90 dark:text-stone-200 dark:border-stone-700">
-            <Upload className="w-4 h-4 shrink-0" />
-            <span className="truncate">Import from AI</span>
-            <input type="file" accept=".json,application/json" onChange={handleImportFromAi} className="hidden" />
-          </label>
-        </ActionGrid>
+
+        {!collapse.aiEdit && (
+          <>
+            <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] leading-snug">
+              Export this assessment, let an AI write the remarks, then import the file back. Only remarks are changed.
+            </p>
+            <ActionGrid cols={2}>
+              <ActionButton variant="secondary" icon={Sparkles} onClick={handleExportForAi}>
+                Export for AI
+              </ActionButton>
+              <label className="w-full min-h-12 px-2.5 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap transition-colors select-none cursor-pointer bg-stone-50 hover:bg-stone-100 active:bg-stone-200 text-stone-800 border border-stone-200 dark:bg-stone-800/90 dark:hover:bg-stone-700/90 dark:text-stone-200 dark:border-stone-700">
+                <Upload className="w-4 h-4 shrink-0" />
+                <span className="truncate">Import from AI</span>
+                <input type="file" accept=".json,application/json" onChange={handleImportFromAi} className="hidden" />
+              </label>
+            </ActionGrid>
+          </>
+        )}
       </div>
 
       {/* Print Actions Section */}
       <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
-        <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">
-          Print Options
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {([
-            { key: 'a', title: 'Design A — Colour', desc: 'Green & yellow, medals, progress bars' },
-            { key: 'b', title: 'Design B — Black & White', desc: 'Saves ink, clean photocopies' },
-          ] as Array<{ key: ResultPrintStyle; title: string; desc: string }>).map(opt => {
-            const checked = printStyle === opt.key;
-            return (
-              <label
-                key={opt.key}
-                className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer select-none transition-colors ${
-                  checked
-                    ? 'border-[#0B5D45] bg-[#E8F3EC] dark:bg-[#0B5D45]/20 dark:border-[#2E9E73]'
-                    : 'border-[#E7E5E4] dark:border-[#44403C] hover:bg-[#FAFAF9] dark:hover:bg-[#292524]'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => choosePrintStyle(opt.key)}
-                  className="mt-0.5 w-4 h-4 accent-[#0B5D45] shrink-0"
-                />
-                <span className="flex flex-col leading-tight">
-                  <span className="text-[13px] font-bold text-[#1C1917] dark:text-[#F5F5F4]">{opt.title}</span>
-                  <span className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5">{opt.desc}</span>
-                </span>
-              </label>
-            );
-          })}
+        <div
+          onClick={() => toggleCollapse('printOptions')}
+          className="flex justify-between items-center gap-2 cursor-pointer select-none"
+        >
+          <div>
+            <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">Print Options</h3>
+            {collapse.printOptions && (
+              <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
+                {printStyle === 'a' ? 'Design A — Colour' : 'Design B — Black & White'}
+                {printFooter ? ` • Footer: "${printFooter.slice(0, 24)}..."` : ''} • Click to expand
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            className="text-xs font-bold text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] flex items-center gap-1 cursor-pointer"
+            aria-expanded={!collapse.printOptions}
+          >
+            <span>{collapse.printOptions ? "Show options" : "Collapse"}</span>
+            {collapse.printOptions ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
         </div>
-        <WatermarkOptions kind="result" hasLogo={!!data.schoolLogo} />
-        <input
-          type="text"
-          value={printFooter}
-          onChange={e => changePrintFooter(e.target.value)}
-          maxLength={80}
-          placeholder="Footer text for prints (optional)"
-          className="w-full px-3 py-2 text-[13px] rounded-xl border border-[#E7E5E4] dark:border-[#44403C] bg-white dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#0B5D45]"
-        />
-        <ActionGrid cols={4}>
-          <ActionButton
-            variant="primary"
-            icon={Printer}
-            onClick={handlePrintClassResults}
-            fullWidth="mobile-only"
-          >
-            Class Result Sheet
-          </ActionButton>
-          <ActionButton
-            variant="secondary"
-            icon={Printer}
-            onClick={handlePrintReportCards}
-          >
-            Report Cards
-          </ActionButton>
-          <ActionButton
-            variant="secondary"
-            icon={Printer}
-            onClick={handlePrintMeritList}
-          >
-            Merit List
-          </ActionButton>
-          <ActionButton
-            variant="secondary"
-            icon={Printer}
-            onClick={handlePrintBlankCard}
-            fullWidth="mobile-only"
-          >
-            Blank Card
-          </ActionButton>
-        </ActionGrid>
+
+        {!collapse.printOptions && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {([
+                { key: 'a', title: 'Design A — Colour', desc: 'Green & yellow, medals, progress bars' },
+                { key: 'b', title: 'Design B — Black & White', desc: 'Saves ink, clean photocopies' },
+              ] as Array<{ key: ResultPrintStyle; title: string; desc: string }>).map(opt => {
+                const checked = printStyle === opt.key;
+                return (
+                  <label
+                    key={opt.key}
+                    className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer select-none transition-colors ${
+                      checked
+                        ? 'border-[#0B5D45] bg-[#E8F3EC] dark:bg-[#0B5D45]/20 dark:border-[#2E9E73]'
+                        : 'border-[#E7E5E4] dark:border-[#44403C] hover:bg-[#FAFAF9] dark:hover:bg-[#292524]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => choosePrintStyle(opt.key)}
+                      className="mt-0.5 w-4 h-4 accent-[#0B5D45] shrink-0"
+                    />
+                    <span className="flex flex-col leading-tight">
+                      <span className="text-[13px] font-bold text-[#1C1917] dark:text-[#F5F5F4]">{opt.title}</span>
+                      <span className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5">{opt.desc}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <WatermarkOptions kind="result" hasLogo={!!data.schoolLogo} />
+            <input
+              type="text"
+              value={printFooter}
+              onChange={e => changePrintFooter(e.target.value)}
+              maxLength={80}
+              placeholder="Footer text for prints (optional)"
+              className="w-full px-3 py-2 text-[13px] rounded-xl border border-[#E7E5E4] dark:border-[#44403C] bg-white dark:bg-[#1C1917] text-[#1C1917] dark:text-[#F5F5F4] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#0B5D45]"
+            />
+            <ActionGrid cols={4}>
+              <ActionButton
+                variant="primary"
+                icon={Printer}
+                onClick={handlePrintClassResults}
+                fullWidth="mobile-only"
+              >
+                Class Result Sheet
+              </ActionButton>
+              <ActionButton
+                variant="secondary"
+                icon={Printer}
+                onClick={handlePrintReportCards}
+              >
+                Report Cards
+              </ActionButton>
+              <ActionButton
+                variant="secondary"
+                icon={Printer}
+                onClick={handlePrintMeritList}
+              >
+                Merit List
+              </ActionButton>
+              <ActionButton
+                variant="secondary"
+                icon={Printer}
+                onClick={handlePrintBlankCard}
+                fullWidth="mobile-only"
+              >
+                Blank Card
+              </ActionButton>
+            </ActionGrid>
+          </>
+        )}
       </div>
       {entryStudentId && activeAsmt.subjects.length > 0 && (() => {
         const idx = sortedStudents.findIndex(x => x.id === entryStudentId);

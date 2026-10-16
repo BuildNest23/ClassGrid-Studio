@@ -1,6 +1,6 @@
 {
-  "summary": "Implementation plan for Capitalize Text on Prints feature and long name auto-fitting across HTML prints, previews, PDF/image exports, and canvas PNGs.",
-  "updatedAt": "2026-10-16T16:11:22.839931140Z",
+  "summary": "Comprehensive implementation plan for ResultsView UI improvements: 2-to-3 column subject cards grid, collapsible cards with contextual summary hints, and assessment marks grid lock protection.",
+  "updatedAt": "2026-10-16T18:32:36.885928568Z",
   "requestFeedback": true,
   "userFacing": true
 }
