@@ -318,6 +318,12 @@ const BASE_PRINT_CSS = `
   .ps2-b .ps2-summary { display: grid; grid-template-columns: repeat(4, 1fr); border: 0.7mm solid #000; margin: 5mm 0; }
   .ps2-b .ps2-summary > div { text-align: center; padding: 2.5mm 1mm; border-left: 0.3mm solid #000; }
   .ps2-b .ps2-summary > div:first-child { border-left: 0; }
+  /* Report card B: boxed Name / Father Name / Roll No / Adm. No (same layout as A, black and white) */
+  .ps2-b .ps2-idbox { display: flex; align-items: center; gap: 5mm; background: #fff; border: 0.3mm solid #000; border-radius: 3mm; padding: 3.5mm 5mm; margin-bottom: 4mm; }
+  .ps2-b .ps2-avatar { flex: 0 0 13mm; width: 13mm; height: 13mm; line-height: 13mm; border-radius: 50%; background: #000; color: #fff; font-size: 18pt; font-weight: 800; text-align: center; }
+  .ps2-b .ps2-idgrid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; }
+  .ps2-b .ps2-idgrid label { display: block; color: #444; font-size: calc(8pt * var(--mult, 1)); font-weight: 600; }
+  .ps2-b .ps2-idgrid b { font-size: calc(11pt * var(--mult, 1)); font-weight: 800; color: #000; }
   .ps2-b .ps2-remarks { border: 0.3mm solid #000; padding: 3mm 4mm; min-height: var(--rc-remh, 28mm); }
 
   .print-sheet.ps2 .ps2-table th.name { text-align: left; padding-left: calc(1.2mm * var(--mult, 1)); }

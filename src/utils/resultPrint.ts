@@ -91,10 +91,10 @@ function pctOf(n: number, max: number): number {
   return max > 0 ? Math.round((n / max) * 1000) / 10 : 0;
 }
 
-function headerLine(d: AppData): string {
+function headerLine(d: AppData, hideClassIncharge = false): string {
   const parts: string[] = [];
-  if (d.className) parts.push(`Class: ${d.className}`);
-  if (d.inchargeName) parts.push(`Incharge: ${d.inchargeName}`);
+  if (!hideClassIncharge && d.className) parts.push(`Class: ${d.className}`);
+  if (!hideClassIncharge && d.inchargeName) parts.push(`Incharge: ${d.inchargeName}`);
   if (d.academicYear) parts.push(`Session ${d.academicYear}`);
   return parts.join(' • ');
 }
@@ -107,9 +107,9 @@ function pageClass(orientation: 'portrait' | 'landscape') {
 
 // ---------- shared pieces ----------
 
-function headerHTML(c: ResultPrintCtx, title: string, noLogo = false): string {
+function headerHTML(c: ResultPrintCtx, title: string, noLogo = false, hideClassIncharge = false): string {
   const d = c.data;
-  const line = esc(headerLine(d));
+  const line = esc(headerLine(d, hideClassIncharge));
   const note = d.printNote ? esc(d.printNote) : '';
   if (c.style === 'a') {
     // With the watermark on, the corner logo and its balancing spacer are left out so the title is centred
@@ -262,11 +262,11 @@ export function buildClassResultHTML(
 // The size is planned for the shortest common paper (US Letter, ~255 mm of printable height).
 // Numbers below were measured from real renders of the card.
 const CARD_TARGET_MM = 244; // leaves ~11 mm spare on Letter for font differences between devices
-function cardDensity(c: ResultPrintCtx, mult: number): { pad: number; fs: number; remH: number; ok: boolean } {
+function cardDensity(c: ResultPrintCtx, mult: number, extraMm = 0): { pad: number; fs: number; remH: number; ok: boolean } {
   const n = Math.max(1, c.asmt.subjects.length);
   const isA = c.style === 'a';
   // Fixed height of everything except the subject rows and the remarks box (at Medium print size)
-  const fixed = (isA ? 158.5 : 140) + (isA ? 108 : 125) * (mult - 1) * (mult > 1 ? 0.7 : 0.45);
+  const fixed = (isA ? 158.5 : 140) + extraMm + (isA ? 108 : 125) * (mult - 1) * (mult > 1 ? 0.7 : 0.45);
   // Height of a row's content (without padding), measured: A has a progress bar under the text
   const rowContent = (fs: number) => (isA ? 2.6 + 0.37 * fs * mult : 0.3 + 0.42 * fs * mult);
 
@@ -283,11 +283,11 @@ function cardDensity(c: ResultPrintCtx, mult: number): { pad: number; fs: number
 }
 
 // Picks the largest text scale (up to the chosen Print Size) at which the card fits on one page.
-function cardFit(c: ResultPrintCtx): { pad: number; fs: number; remH: number; scale: number } {
+function cardFit(c: ResultPrintCtx, extraMm = 0): { pad: number; fs: number; remH: number; scale: number } {
   const wanted = (PRINT_SIZES[c.data.printSize] || PRINT_SIZES.m).mult;
-  let last = cardDensity(c, 0.7);
+  let last = cardDensity(c, 0.7, extraMm);
   for (let sc = wanted; sc >= 0.7; sc = Math.round((sc - 0.05) * 100) / 100) {
-    const d = cardDensity(c, sc);
+    const d = cardDensity(c, sc, extraMm);
     if (d.ok) return { ...d, scale: sc };
     last = d;
   }
@@ -298,7 +298,7 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
   const { asmt, data, ranked } = c;
   const passPct = Number(asmt.passPercent) || 40;
   const total = ranked.length;
-  const dens = { ...cardFit(c), maxRowsMm: asmt.subjects.length * 14 + 14 };
+  const dens = { ...cardFit(c, c.style === 'b' ? 5 : 0), maxRowsMm: asmt.subjects.length * 14 + 14 };
   const cardVars = `--mult:${dens.scale};--rc-pad:${dens.pad}mm;--rc-fs:${dens.fs}pt;--rc-remh:${dens.remH}mm`;
   const wm = c.watermark ?? loadWatermark();
   const wmOn = watermarkActive(wm, data.schoolLogo);
@@ -334,10 +334,9 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
       const resWord = r.passed ? 'PASS' : 'FAIL';
       const resCls = r.passed ? 'ps2-res-pass' : 'ps2-res-fail';
 
-      let idBlock: string;
-      if (c.style === 'a') {
-        const initial = esc((s.name || '?').trim().charAt(0).toUpperCase() || '?');
-        idBlock = `<div class="ps2-idbox">
+      // Both designs use the same boxed layout (Design B is black and white via CSS)
+      const initial = esc((s.name || '?').trim().charAt(0).toUpperCase() || '?');
+      const idBlock = `<div class="ps2-idbox">
           <div class="ps2-avatar">${initial}</div>
           <div class="ps2-idgrid">
             <div><label>Name</label><b>${esc(s.name || '—')}</b></div>
@@ -346,14 +345,6 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
             <div><label>Adm. No</label><b>${esc(s.admissionNo || '—')}</b></div>
           </div>
         </div>`;
-      } else {
-        const field = (label: string, val: string) =>
-          `<div class="ps2-field"><label>${label}</label><i></i><b>${esc(val || '—')}</b></div>`;
-        idBlock = `<div class="ps2-idrows">
-          <div class="ps2-idrow">${field('Name', s.name)}${field('Father Name', s.fatherName || '')}</div>
-          <div class="ps2-idrow">${field('Roll No', s.rollNo || '')}${field('Adm. No', s.admissionNo || '')}</div>
-        </div>`;
-      }
 
       const rankSuffix = c.style === 'a' && hasMarks(r) ? ` <small>of ${total}</small>` : '';
       return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card${wmOn ? ' cg-wm-host' : ''}" style="${cardVars}">
@@ -429,7 +420,7 @@ export function buildBlankReportCardHTML(c: ResultPrintCtx): string {
   return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card${wmOn ? ' cg-wm-host' : ''}" style="${cardVars}">
     ${wmOn ? watermarkHTML(data.schoolLogo, wm.result) : ''}
     <div class="ps2-cardframe">
-      ${headerHTML(c, 'Student Report Card', wmOn)}
+      ${headerHTML(c, 'Student Report Card', wmOn, true)}
       ${idBlock}
       <div class="ps2-rows" style="max-height:${dens.maxRowsMm + n * 4}mm"><table class="ps2-table ps2-subtable">
         <thead><tr>
