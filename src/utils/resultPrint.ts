@@ -383,6 +383,73 @@ export function buildReportCardsHTML(c: ResultPrintCtx, onlyStudentId?: string):
     .join('');
 }
 
+// ---------- 2b. Blank Result Card (for writing by hand) ----------
+// One empty card: subjects and max marks are filled in from the open assessment,
+// everything else (name, father name, roll no, class, marks, result, remarks) is a blank line or box.
+
+export function buildBlankReportCardHTML(c: ResultPrintCtx): string {
+  const { asmt, data } = c;
+  const n = Math.max(1, asmt.subjects.length);
+  const dens = { ...cardFit(c), maxRowsMm: n * 14 + 14 };
+  const cardVars = `--mult:${dens.scale};--rc-pad:${dens.pad}mm;--rc-fs:${dens.fs}pt;--rc-remh:${Math.max(dens.remH, 22)}mm`;
+  const wm = c.watermark ?? loadWatermark();
+  const wmOn = watermarkActive(wm, data.schoolLogo);
+  const rowMm = Math.round(Math.min(11, Math.max(5.5, 60 / n)) * 10) / 10;
+
+  const line = (label: string) =>
+    `<div style="flex:1;display:flex;align-items:flex-end;gap:1.5mm;min-width:0;">
+      <span style="font-size:calc(8pt * var(--mult,1));font-weight:700;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap;">${label}</span>
+      <i style="flex:1;border-bottom:0.3mm solid #444;min-width:6mm;height:6mm;"></i>
+    </div>`;
+  const idBlock = `<div style="margin:3mm 0 4mm;">
+      <div style="display:flex;gap:8mm;margin-bottom:3mm;">${line('Name')}${line('Father Name')}</div>
+      <div style="display:flex;gap:8mm;">${line('Roll No')}${line('Class')}</div>
+    </div>`;
+
+  const cell = 'border:0.3mm solid #666;';
+  const subRows = asmt.subjects
+    .map(
+      sub => `<tr style="height:${rowMm}mm;">
+        <td class="left">${esc(sub.name)}</td>
+        <td>${Number(sub.max) || 0}</td>
+        <td style="${cell}">&nbsp;</td>
+      </tr>`
+    )
+    .join('');
+
+  const box = (label: string, extra = '') =>
+    `<div><label>${label}</label><b style="min-height:9mm;">&nbsp;${extra}</b></div>`;
+
+  return `<div class="print-sheet report-card ps2 ps2-${c.style} ps2-port ps2-card${wmOn ? ' cg-wm-host' : ''}" style="${cardVars}">
+    ${wmOn ? watermarkHTML(data.schoolLogo, wm.result) : ''}
+    <div class="ps2-cardframe">
+      ${headerHTML(c, 'Student Report Card', wmOn)}
+      ${idBlock}
+      <div class="ps2-rows" style="max-height:${dens.maxRowsMm + n * 4}mm"><table class="ps2-table ps2-subtable">
+        <thead><tr>
+          <th class="left" style="width:50%">Subject</th>
+          <th style="width:20%">Max</th>
+          <th style="width:30%">Obtained</th>
+        </tr></thead>
+        <tbody>${subRows}</tbody>
+      </table></div>
+      <div class="ps2-summary">
+        ${box('Total', `<small> / ${c.totalMax}</small>`)}
+        ${box('Percentage')}
+        ${box('Rank')}
+        ${box('Result')}
+      </div>
+      <div class="ps2-remarks">
+        <label>${c.style === 'a' ? 'Teacher Remarks' : 'Remarks'}</label>
+        <div class="ps2-remarks-text">&nbsp;</div>
+      </div>
+      <div class="ps2-spacer"></div>
+      ${sigHTML('Parent / Guardian')}
+      ${footerHTML(c)}
+    </div>
+  </div>`;
+}
+
 // ---------- 3. Merit List ----------
 
 export function buildMeritListHTML(c: ResultPrintCtx): string {
