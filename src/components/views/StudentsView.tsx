@@ -421,21 +421,25 @@ export const StudentsView: React.FC = () => {
             return (
               <div
                 key={s.id}
-                className="flex justify-between items-center p-2.5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] hover:border-[#D6D3D1] transition-colors gap-2"
+                className="flex flex-col p-2.5 rounded-xl border border-[#E7E5E4] dark:border-[#44403C] hover:border-[#D6D3D1] transition-colors gap-2"
               >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold font-mono bg-[#F5F5F4] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4] shrink-0">
+                {/* Name block: full width, wraps instead of being cut off */}
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold font-mono bg-[#F5F5F4] dark:bg-[#292524] text-[#1C1917] dark:text-[#F5F5F4] shrink-0 mt-0.5">
                     Roll {s.rollNo || "—"}
                   </span>
-                  <span className="font-bold text-sm text-[#1C1917] dark:text-[#F5F5F4] truncate">
-                    {s.name || "(no name)"}
-                  </span>
-                  <span className="text-xs text-[#78716C] dark:text-[#A8A29E] truncate hidden sm:inline">
-                    s/o {s.fatherName || "—"}
-                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm text-[#1C1917] dark:text-[#F5F5F4] break-words leading-snug">
+                      {s.name || "(no name)"}
+                    </div>
+                    <div className="text-xs text-[#78716C] dark:text-[#A8A29E] break-words">
+                      s/o {s.fatherName || "—"}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                {/* Action buttons: below the name */}
+                <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-[#F5F5F4] dark:border-[#292524]">
                   <button
                     type="button"
                     onClick={() => handleMove(s.id, -1)}
