@@ -292,7 +292,7 @@ export function buildFeeReceiptHTML(c: ReceiptCtx, studentId: string): string {
       <div class="fr-rows">${rows}</div>
       <div class="fr-tot">${totals}</div>
       ${stamp}
-      <div class="fr-sigs"><div class="fr-sig">Received by</div><div class="fr-sig">Parent / Guardian</div></div>
+      <div class="fr-sigs"><div class="fr-sig" style="flex:0 0 55%;margin-left:auto;">Received by</div></div>
       ${thanks ? `<div class="fr-thanks">${esc(thanks)}</div>` : ''}
     </div>
   </div>`;
