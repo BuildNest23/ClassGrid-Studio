@@ -76,11 +76,15 @@ export const StudentsView: React.FC = () => {
 
     if (editingId) {
       saveData(prev => {
+        const original = prev.students.find(s => s.id === editingId);
+        const newRoll = rollNo.trim() || (original?.rollNo || "");
+        const rollChanged = !!original && newRoll !== (original.rollNo || "");
+
         const nextStudents = prev.students.map(s => {
           if (s.id === editingId) {
             return {
               ...s,
-              rollNo: rollNo.trim() || s.rollNo,
+              rollNo: newRoll,
               admissionNo: admNo.trim(),
               name: trimmedName,
               fatherName: fatherName.trim(),
@@ -91,6 +95,26 @@ export const StudentsView: React.FC = () => {
           }
           return s;
         });
+
+        // If the roll number was changed, move the student to that position
+        // (ascending order). Then renumber everyone 01, 02, 03...
+        const target = parseInt(newRoll, 10);
+        if (rollChanged && !isNaN(target)) {
+          const edited = nextStudents.find(s => s.id === editingId)!;
+          const others = nextStudents.filter(s => s.id !== editingId);
+          const oldRoll = parseInt(original!.rollNo, 10);
+          const movingDown = !isNaN(oldRoll) && target > oldRoll;
+          // Moving up: go before anyone with the same/higher roll.
+          // Moving down: go after anyone with the same/lower roll.
+          let insertAt = others.findIndex(s => {
+            const r = parseInt(s.rollNo, 10);
+            return !isNaN(r) && (movingDown ? r > target : r >= target);
+          });
+          if (insertAt === -1) insertAt = others.length;
+          const reordered = [...others.slice(0, insertAt), edited, ...others.slice(insertAt)];
+          return { ...prev, students: syncRollNumbers(reordered) };
+        }
+
         return { ...prev, students: nextStudents };
       });
       toast("Student updated.", "success");
