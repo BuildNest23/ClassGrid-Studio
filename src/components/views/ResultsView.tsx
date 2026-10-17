@@ -24,6 +24,10 @@ import {
   readRemarkRowsFromSheet,
   readRemarkRowsWithAi,
   generateRemarksWithAi,
+  readMarkRowsFromSheet,
+  readMarkRowsWithAi,
+  planMarksImport,
+  type MarkRow,
   generatedRemarksToResultsFile,
   remarkRowsToResultsFile,
   aiReadingAvailable,
@@ -716,6 +720,87 @@ export const ResultsView: React.FC = () => {
       toast((err as Error).message || "Could not read the file.", "error");
     } finally {
       setReadingRemarks(false);
+    }
+  };
+
+  // Import marks from file: Excel/CSV are read on the device, PDF/photos go to the AI reading service.
+  const [readingMarks, setReadingMarks] = useState(false);
+  const handleImportMarksFromFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || readingMarks) return;
+    if (isLocked) {
+      toast("Grid is locked. Unlock it to import marks.", "info");
+      return;
+    }
+    if (!activeAsmt.subjects.length) {
+      toast("Add subjects first.", "error");
+      return;
+    }
+    const kind = detectKind(file);
+    if (kind !== "sheet" && kind !== "ai") {
+      toast("Please choose an Excel, CSV, PDF or photo file.", "error");
+      return;
+    }
+    try {
+      setReadingMarks(true);
+      let rows: MarkRow[];
+      let ignored: string[] = [];
+      if (kind === "sheet") {
+        const r = await readMarkRowsFromSheet(file, activeAsmt.subjects);
+        rows = r.rows;
+        ignored = r.ignoredColumns;
+      } else {
+        if (!aiReadingAvailable()) {
+          toast("PDF and photo reading is not set up yet. Use an Excel or CSV file.", "error");
+          return;
+        }
+        if (!hasAiConsent()) {
+          const ok = await uiConfirm(
+            "To read this file, it will be sent to Google's AI service over the internet.\n\nIt may contain student names and marks. Continue?",
+            { title: "Send file to AI?", yesText: "Continue", icon: "warning" }
+          );
+          if (!ok) return;
+          saveAiConsent();
+        }
+        toast("Reading file… this can take a few seconds.", "info");
+        rows = await readMarkRowsWithAi(file, activeAsmt.subjects);
+      }
+      setReadingMarks(false);
+
+      const plan = planMarksImport(rows, data.students, activeAsmt, data.assessmentResults[activeAsmt.id] || {});
+      if (plan.cells === 0) {
+        const why = plan.unknownStudents ? ` ${plan.unknownStudents} students were not found in your class.` : "";
+        toast(`Nothing to update.${why}`, "info");
+        return;
+      }
+      const notes: string[] = [];
+      if (plan.overwritten) notes.push(`${plan.overwritten} existing marks will be replaced`);
+      if (plan.unchanged) notes.push(`${plan.unchanged} already the same`);
+      if (plan.overMax) notes.push(`${plan.overMax} marks above the maximum were skipped`);
+      if (plan.invalid) notes.push(`${plan.invalid} unreadable marks were skipped`);
+      if (plan.unknownStudents) notes.push(`${plan.unknownStudents} students not found were skipped`);
+      if (ignored.length) notes.push(`Columns ignored: ${ignored.slice(0, 5).join(", ")}`);
+      const ok = await uiConfirm(
+        `${plan.cells} marks for ${plan.students} students will be saved in "${activeAsmt.name}".\n\n${plan.examples.join("\n")}` +
+          (notes.length ? `\n\n${notes.join("\n")}` : "") +
+          `\n\nMarks that are not in the file are not changed. You can Undo afterwards.`,
+        { title: "Import marks from file", yesText: "Import", icon: "warning" }
+      );
+      if (!ok) return;
+      const asmtId = activeAsmt.id;
+      saveData(prev => {
+        const cur = { ...(prev.assessmentResults[asmtId] || {}) };
+        Object.entries(plan.updates).forEach(([sid, patch]) => {
+          cur[sid] = { ...(cur[sid] || {}), ...patch };
+        });
+        return { ...prev, assessmentResults: { ...prev.assessmentResults, [asmtId]: cur } };
+      });
+      toast(`${plan.cells} marks imported.`, "success");
+    } catch (err) {
+      toast((err as Error).message || "Could not read the file.", "error");
+    } finally {
+      setReadingMarks(false);
     }
   };
 
@@ -1436,6 +1521,26 @@ export const ResultsView: React.FC = () => {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Import marks from file */}
+      <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">Import marks from file</h3>
+          <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
+            Fill the marks from an <b>Excel / CSV</b> file (read on your phone) or a <b>PDF / photo</b> of a marks sheet (read by AI, needs internet). The file needs <b>Roll No</b> or <b>Name</b> plus one column per subject, named like the subjects here. Write <b>A</b> for absent. You see a preview before anything is saved.
+          </p>
+        </div>
+        <label className={`w-full min-h-12 px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 whitespace-nowrap transition-colors select-none bg-[#B91C1C] hover:bg-[#991B1B] text-white ${readingMarks ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
+          <Upload className="w-4 h-4 shrink-0" />
+          <span className="truncate">{readingMarks ? "Reading file…" : "Import marks from file"}</span>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png,.webp,image/*,application/pdf"
+            onChange={handleImportMarksFromFile}
+            className="hidden"
+          />
+        </label>
       </div>
 
       {/* Edit with AI */}
