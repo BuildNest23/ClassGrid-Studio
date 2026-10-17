@@ -60,7 +60,7 @@ interface ClassroomContextType {
   quickSaveData: (updater: AppData | ((prev: AppData) => AppData)) => void;
   flushSave: () => void;
   replaceAllData: (raw: unknown) => void;
-  resetEverything: () => void;
+  resetEverything: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -69,9 +69,6 @@ interface ClassroomContextType {
   toast: (message: string, type?: 'success' | 'error' | 'info') => void;
   dismissToast: (id: string) => void;
   isSavedFlashing: boolean;
-  moreSheetOpen: boolean;
-  openMore: () => void;
-  closeMore: () => void;
   uiConfirm: (message: string, opts?: ConfirmDialogOptions) => Promise<boolean>;
   uiPrompt: (message: string, defaultValue?: string, opts?: PromptDialogOptions) => Promise<string | null>;
   closeConfirm: (val?: boolean) => void;
@@ -214,16 +211,12 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [isSavedFlashing, setIsSavedFlashing] = useState(false);
-  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [infoModal, setInfoModal] = useState<{ isOpen: boolean; title: string; content: React.ReactNode }>({
     isOpen: false,
     title: "",
     content: null
   });
-
-  const openMore = useCallback(() => setMoreSheetOpen(true), []);
-  const closeMore = useCallback(() => setMoreSheetOpen(false), []);
 
   const flashSaved = useCallback(() => {
     setIsSavedFlashing(true);
@@ -261,7 +254,6 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const historyStackRef = useRef<string[]>([]);
   const redoStackRef = useRef<string[]>([]);
   const lastSavedStateRef = useRef<string>(JSON.stringify(makeBaseData()));
-  const isRestoringRef = useRef(false);
   const dataRef = useRef<AppData>(data);
   const pendingSaveDataRef = useRef<AppData | null>(null);
   const debounceTimerRef = useRef<number | null>(null);
@@ -536,12 +528,10 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       toast("Nothing to undo", "info");
       return;
     }
-    isRestoringRef.current = true;
     redoStackRef.current.push(lastSavedStateRef.current);
     const prevStateStr = historyStackRef.current.pop()!;
     lastSavedStateRef.current = prevStateStr;
     restoreState(prevStateStr);
-    isRestoringRef.current = false;
     bumpHistory();
     toast("Undone", "info");
   }, [toast, restoreState, bumpHistory]);
@@ -551,13 +541,11 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       toast("Nothing to redo", "info");
       return;
     }
-    isRestoringRef.current = true;
     historyStackRef.current.push(lastSavedStateRef.current);
     if (historyStackRef.current.length > 30) historyStackRef.current.shift();
     const nextStateStr = redoStackRef.current.pop()!;
     lastSavedStateRef.current = nextStateStr;
     restoreState(nextStateStr);
-    isRestoringRef.current = false;
     bumpHistory();
     toast("Redone", "info");
   }, [toast, restoreState, bumpHistory]);
@@ -1056,9 +1044,6 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         toast,
         dismissToast,
         isSavedFlashing,
-        moreSheetOpen,
-        openMore,
-        closeMore,
         uiConfirm,
         uiPrompt,
         closeConfirm,
