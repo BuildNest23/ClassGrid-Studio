@@ -20,6 +20,17 @@ import { triggerPrint } from '../../utils/printEngine';
 import { exportFileBlob } from '../../utils/nativeFileExport';
 import { buildResultsAiFile, planResultsImport } from '../../utils/aiExchange';
 import {
+  detectKind,
+  readRemarkRowsFromSheet,
+  readRemarkRowsWithAi,
+  generateRemarksWithAi,
+  generatedRemarksToResultsFile,
+  remarkRowsToResultsFile,
+  aiReadingAvailable,
+  hasAiConsent,
+  saveAiConsent
+} from '../../utils/fileImport';
+import {
   ResultPrintStyle,
   loadPrintStyle,
   savePrintStyle,
@@ -656,6 +667,109 @@ export const ResultsView: React.FC = () => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    await reviewAndApplyRemarks(file, "Import from AI");
+  };
+
+  // Import remarks from file: Excel/CSV are read on the device, PDF/photos go to the AI reading service.
+  const [readingRemarks, setReadingRemarks] = useState(false);
+  const handleImportRemarksFromFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || readingRemarks) return;
+    const kind = detectKind(file);
+    if (kind === "unsupported") {
+      toast("Please choose an Excel, CSV, PDF, photo or JSON file.", "error");
+      return;
+    }
+    if (kind === "json") {
+      // A results file exported with "Export for AI" and filled in by an AI
+      await reviewAndApplyRemarks(file, "Import remarks from file");
+      return;
+    }
+    try {
+      setReadingRemarks(true);
+      let rows;
+      if (kind === "sheet") {
+        rows = await readRemarkRowsFromSheet(file);
+      } else {
+        if (!aiReadingAvailable()) {
+          toast("PDF and photo reading is not set up yet. Use an Excel or CSV file.", "error");
+          return;
+        }
+        if (!hasAiConsent()) {
+          const ok = await uiConfirm(
+            "To read this file, it will be sent to Google's AI service over the internet.\n\nIt may contain student names. Continue?",
+            { title: "Send file to AI?", yesText: "Continue", icon: "warning" }
+          );
+          if (!ok) return;
+          saveAiConsent();
+        }
+        toast("Reading file… this can take a few seconds.", "info");
+        rows = await readRemarkRowsWithAi(file);
+      }
+      setReadingRemarks(false);
+      await reviewAndApplyRemarks(
+        remarkRowsToResultsFile(rows, data.students, { id: activeAsmt.id, name: activeAsmt.name }),
+        "Import remarks from file"
+      );
+    } catch (err) {
+      toast((err as Error).message || "Could not read the file.", "error");
+    } finally {
+      setReadingRemarks(false);
+    }
+  };
+
+  // Write remarks with AI: marks (no names) go to the AI service, remarks come back for review.
+  // Only students with an empty remark are filled, so remarks you wrote yourself are never replaced.
+  const [writingRemarks, setWritingRemarks] = useState(false);
+  const [remarkLang, setRemarkLang] = useState<"English" | "Urdu" | "Hindi">("English");
+  const handleWriteRemarksWithAi = async () => {
+    if (writingRemarks) return;
+    if (!activeAsmt.subjects.length) {
+      toast("Add subjects and marks first.", "error");
+      return;
+    }
+    if (!aiReadingAvailable()) {
+      toast("AI is not set up yet.", "error");
+      return;
+    }
+    const file = buildResultsAiFile(data, activeAsmt, ranked);
+    const todo = file.students
+      .filter((s: any) => s.percentage !== null && !String(s.remarks || "").trim())
+      .map((s: any, i: number) => ({ n: i + 1, id: s.id as string, marks: s.marks, percentage: s.percentage, rank: s.rank, result: s.result }));
+    if (!todo.length) {
+      toast("Nothing to write. Students need marks and an empty remark.", "info");
+      return;
+    }
+    try {
+      if (!hasAiConsent()) {
+        const ok = await uiConfirm(
+          "The marks of these students will be sent to Google's AI service to write remarks. Names are not sent.\n\nContinue?",
+          { title: "Send marks to AI?", yesText: "Continue", icon: "warning" }
+        );
+        if (!ok) return;
+        saveAiConsent();
+      }
+      setWritingRemarks(true);
+      toast(`Writing ${todo.length} remarks… this can take a few seconds.`, "info");
+      const remarks = await generateRemarksWithAi(
+        todo.map(t => ({ n: t.n, marks: t.marks, percentage: t.percentage, rank: t.rank, result: t.result })),
+        activeAsmt.name,
+        remarkLang
+      );
+      setWritingRemarks(false);
+      await reviewAndApplyRemarks(
+        generatedRemarksToResultsFile(todo.map(t => ({ n: t.n, id: t.id })), remarks, { id: activeAsmt.id, name: activeAsmt.name }),
+        "AI-written remarks"
+      );
+    } catch (err) {
+      toast((err as Error).message || "Could not write remarks.", "error");
+    } finally {
+      setWritingRemarks(false);
+    }
+  };
+
+  const reviewAndApplyRemarks = async (file: File, title: string) => {
     try {
       const plan = await planResultsImport(file, data, activeAsmt);
       if (plan.changed === 0) {
@@ -671,7 +785,7 @@ export const ResultsView: React.FC = () => {
         `${plan.changed} remarks will be updated in "${activeAsmt.name}".` +
           (notes.length ? `\n\n${notes.join("\n")}` : "") +
           `\n\nMarks are not changed. You can Undo afterwards.`,
-        { title: "Import from AI", yesText: "Import", icon: "warning" }
+        { title, yesText: "Import", icon: "warning" }
       );
       if (!ok) return;
       saveData(prev => ({
@@ -1352,6 +1466,37 @@ export const ResultsView: React.FC = () => {
           <>
             <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] leading-snug">
               Export this assessment, let an AI write the remarks, then import the file back. Only remarks are changed.
+            </p>
+            <div className="flex gap-2">
+              <ActionButton variant="primary" icon={Sparkles} onClick={handleWriteRemarksWithAi} disabled={writingRemarks} className="flex-1">
+                {writingRemarks ? "Writing remarks…" : "Write remarks with AI"}
+              </ActionButton>
+              <select
+                value={remarkLang}
+                onChange={e => setRemarkLang(e.target.value as "English" | "Urdu" | "Hindi")}
+                aria-label="Remark language"
+                className="min-h-12 px-2 text-xs font-bold rounded-xl border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit"
+              >
+                <option>English</option>
+                <option>Urdu</option>
+                <option>Hindi</option>
+              </select>
+            </div>
+            <p className="text-[10.5px] text-[#78716C] dark:text-[#A8A29E] leading-snug">
+              Writes a short remark for every student who has marks and an empty remark. Only marks are sent (no names). You see a preview before anything is saved.
+            </p>
+            <label className={`w-full min-h-12 px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 whitespace-nowrap transition-colors select-none bg-[#B91C1C] hover:bg-[#991B1B] text-white ${readingRemarks ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
+              <Upload className="w-4 h-4 shrink-0" />
+              <span className="truncate">{readingRemarks ? "Reading file…" : "Import remarks from file"}</span>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png,.webp,.json,image/*,application/pdf,application/json"
+                onChange={handleImportRemarksFromFile}
+                className="hidden"
+              />
+            </label>
+            <p className="text-[10.5px] text-[#78716C] dark:text-[#A8A29E] leading-snug">
+              Excel / CSV / PDF / photo with <b>Roll No</b> or <b>Name</b> and <b>Remarks</b> columns, or the <b>JSON</b> file from Export for AI after an AI has filled in the remarks. Students are matched by name first, then roll number. Marks are never changed.
             </p>
             <ActionGrid cols={2}>
               <ActionButton variant="secondary" icon={Sparkles} onClick={handleExportForAi}>

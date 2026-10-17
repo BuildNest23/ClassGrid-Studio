@@ -7,6 +7,16 @@ import { ActionGrid, ActionButton } from '../ActionGrid';
 import { exportFileBlob } from '../../utils/nativeFileExport';
 import { buildStudentsAiFile, planStudentsImport } from '../../utils/aiExchange';
 import {
+  detectKind,
+  readSheetRows,
+  readRowsWithAi,
+  rowsToStudentsFile,
+  aiReadingAvailable,
+  hasAiConsent,
+  saveAiConsent,
+  type ImportedRow
+} from '../../utils/fileImport';
+import {
   UserPlus,
   Edit2,
   Trash2,
@@ -18,7 +28,8 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
-  Upload
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const StudentsView: React.FC = () => {
@@ -280,6 +291,56 @@ export const StudentsView: React.FC = () => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    await reviewAndApply(file, "Import from AI");
+  };
+
+  // Import from file: Excel/CSV are read on the device, PDF/photos go to the AI reading service.
+  const [reading, setReading] = useState(false);
+  const handleImportFromFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || reading) return;
+    const kind = detectKind(file);
+    if (kind === "unsupported") {
+      toast("Please choose an Excel, CSV, PDF, photo or JSON file.", "error");
+      return;
+    }
+    if (kind === "json") {
+      // A students file exported with "Export for AI" and filled in by an AI
+      await reviewAndApply(file, "Import from file");
+      return;
+    }
+    try {
+      setReading(true);
+      let rows: ImportedRow[];
+      if (kind === "sheet") {
+        rows = await readSheetRows(file);
+      } else {
+        if (!aiReadingAvailable()) {
+          toast("PDF and photo reading is not set up yet. Use an Excel or CSV file.", "error");
+          return;
+        }
+        if (!hasAiConsent()) {
+          const ok = await uiConfirm(
+            "To read this file, it will be sent to Google's AI service over the internet.\n\nIt may contain student names and phone numbers. Continue?",
+            { title: "Send file to AI?", yesText: "Continue", icon: "warning" }
+          );
+          if (!ok) return;
+          saveAiConsent();
+        }
+        toast("Reading file… this can take a few seconds.", "info");
+        rows = await readRowsWithAi(file);
+      }
+      setReading(false);
+      await reviewAndApply(rowsToStudentsFile(rows), "Import from file");
+    } catch (err) {
+      toast((err as Error).message || "Could not read the file.", "error");
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const reviewAndApply = async (file: File, title: string) => {
     try {
       const plan = await planStudentsImport(file, data);
       const adds = plan.additions.length;
@@ -308,7 +369,7 @@ export const StudentsView: React.FC = () => {
         parts.join("\n\n") +
           (notes.length ? `\n\n${notes.join("\n")}` : "") +
           `\n\nRoll numbers of existing students and all admission numbers are not changed. You can Undo afterwards.`,
-        { title: "Import from AI", yesText: "Import", icon: "warning" }
+        { title, yesText: "Import", icon: "warning" }
       );
       if (!ok) return;
       saveData(prev => {
@@ -319,7 +380,7 @@ export const StudentsView: React.FC = () => {
           rollNo: String(updated.length + i + 1).padStart(2, "0"),
           name: n.name,
           fatherName: n.fatherName,
-          phone: "",
+          phone: n.phone || "",
           address: "",
           notes: "",
           createdAt: Date.now(),
@@ -493,6 +554,29 @@ export const StudentsView: React.FC = () => {
             )}
           </div>
         </form>
+      </div>
+
+      {/* Import from file */}
+      <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4]">Import from file</h3>
+          <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
+            Add many students at once from an <b>Excel / CSV</b> file (read on your phone), a <b>PDF / photo</b> of a list (read by AI, needs internet), or a <b>JSON</b> file from Export for AI. You will see a preview before anything is saved.
+          </p>
+        </div>
+        <label className={`w-full min-h-12 px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 whitespace-nowrap transition-colors select-none bg-[#B91C1C] hover:bg-[#991B1B] text-white ${reading ? "opacity-60 pointer-events-none" : "cursor-pointer"}`}>
+          <FileSpreadsheet className="w-4 h-4 shrink-0" />
+          <span className="truncate">{reading ? "Reading file…" : "Choose file"}</span>
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png,.webp,.json,image/*,application/pdf,application/json"
+            onChange={handleImportFromFile}
+            className="hidden"
+          />
+        </label>
+        <p className="text-[10.5px] text-[#78716C] dark:text-[#A8A29E] leading-snug">
+          Tip: put headings like <b>Name, Father Name, Admission No, Phone</b> in the first row of your Excel file.
+        </p>
       </div>
 
       {/* Edit with AI */}
