@@ -26,7 +26,7 @@ import { getStorage } from '../../storage';
 import { getLastAutoBackupTimestamp } from '../../storage/autoBackup';
 import { useCapsPrint, saveCapsPrint } from '../../utils/capsPrint';
 import { NewClassDialog, shelveOpenClass } from './ClassesView';
-import { setActiveShelfId } from '../../utils/classShelf';
+import { setActiveShelfId, exportAllClasses, restoreClasses } from '../../utils/classShelf';
 
 const LAST_BACKUP_KEY = 'classgrid_last_backup';
 const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
@@ -222,11 +222,25 @@ export const SettingsView: React.FC = () => {
 
   // Export JSON Backup
   const handleExportBackup = async () => {
+    // The backup also carries every class saved in the Classes tab.
+    let classes: Awaited<ReturnType<typeof exportAllClasses>> = [];
+    try {
+      classes = await exportAllClasses();
+    } catch (e) {
+      const goOn = await uiConfirm("Could not read your saved classes, so this backup would only contain the open class. Export anyway?", {
+        title: "Saved classes unavailable",
+        yesText: "Export anyway",
+        danger: false,
+        icon: "warning"
+      });
+      if (!goOn) return;
+    }
     const payload = {
       app: "ClassroomManager",
       version: 6,
       exportedAt: new Date().toISOString(),
-      data: data
+      data: data,
+      ...(classes.length > 0 ? { classes } : {})
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -273,7 +287,10 @@ export const SettingsView: React.FC = () => {
           throw new Error("Invalid backup format");
         }
 
-        const ok = await uiConfirm("Replace current data with imported backup?\n\nThis will overwrite current records.", {
+        const savedClasses: unknown = Array.isArray(parsed.classes) ? parsed.classes : [];
+        const classCount = (savedClasses as unknown[]).length;
+        const ok = await uiConfirm(
+          `Replace current data with imported backup?\n\nThis will overwrite the open class.${classCount ? `\nIt also restores ${classCount} saved class${classCount === 1 ? '' : 'es'} in the Classes tab.` : ''}`, {
           title: "Import Backup",
           yesText: "Import",
           danger: true,
@@ -282,8 +299,17 @@ export const SettingsView: React.FC = () => {
         if (!ok) return;
 
         replaceAllData(importedData);
+        setActiveShelfId(null); // the open class is now the file's class, not the one linked to a Classes card
+        let restored = 0;
+        if (classCount) {
+          try {
+            restored = await restoreClasses(savedClasses);
+          } catch {
+            toast("The open class was imported, but the saved classes could not be restored.", "error");
+          }
+        }
 
-        toast("Backup imported successfully.", "success");
+        toast(restored ? `Backup imported. ${restored} saved class${restored === 1 ? '' : 'es'} restored.` : "Backup imported successfully.", "success");
         setActiveTab("dashboard");
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Error reading file";
