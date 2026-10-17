@@ -14,6 +14,7 @@ import { FundsView } from './components/views/FundsView';
 import { StudentDirectoryView } from './components/views/StudentDirectoryView';
 import { SettingsView } from './components/views/SettingsView';
 import { DailyTestView } from './components/views/DailyTestView';
+import { ClassesView } from './components/views/ClassesView';
 import { cleanupPrintArea } from './utils/printEngine';
 
 const TAB_TITLES: Record<string, string> = {
@@ -24,7 +25,8 @@ const TAB_TITLES: Record<string, string> = {
   funds: 'Funds & Fees',
   students: 'Students Master',
   view: 'Student Directory',
-  settings: 'School Setup'
+  settings: 'School Setup',
+  classes: 'Classes'
 };
 
 const MainContent: React.FC = () => {
@@ -81,6 +83,7 @@ const MainContent: React.FC = () => {
           {activeTab === 'funds' && <FundsView />}
           {activeTab === 'view' && <StudentDirectoryView />}
           {activeTab === 'settings' && <SettingsView />}
+          {activeTab === 'classes' && <ClassesView />}
         </div>
       </main>
 

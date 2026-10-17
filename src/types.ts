@@ -72,7 +72,7 @@ export interface AppData {
   dailyTests: Record<string, Record<string, number | 'A'>>; // dateKey (YYYY-MM-DD) -> studentId -> mark (0-10) or 'A'
 }
 
-export type ActiveTab = 'dashboard' | 'students' | 'attendance' | 'dailytest' | 'results' | 'funds' | 'view' | 'settings';
+export type ActiveTab = 'dashboard' | 'students' | 'attendance' | 'dailytest' | 'results' | 'funds' | 'view' | 'settings' | 'classes';
 
 export interface ToastItem {
   id: string;
