@@ -163,6 +163,7 @@ export interface NewStudentInput {
   name: string;
   fatherName: string;
   admissionNo: string;
+  phone?: string;
 }
 
 export interface StudentsImportPlan {
@@ -192,6 +193,13 @@ function cleanAdm(v: unknown): string {
   if (typeof v === 'number') v = String(v);
   if (typeof v !== 'string') return '';
   return v.replace(/[^A-Za-z0-9-]/g, '').slice(0, 20);
+}
+
+// Phone numbers: digits, +, spaces and dashes only, up to 20 characters
+function cleanPhone(v: unknown): string {
+  if (typeof v === 'number') v = String(v);
+  if (typeof v !== 'string') return '';
+  return v.replace(/[^0-9+\-\s]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
 }
 
 const lc = (v: string) => v.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -291,7 +299,7 @@ export async function planStudentsImport(file: File, data: AppData): Promise<Stu
     if (adm) seenNewAdm.add(adm);
     seenNewKey.add(key);
     if (sameInApp.length) plan.sameNameNotes++;
-    plan.additions.push({ name, fatherName: father, admissionNo: adm });
+    plan.additions.push({ name, fatherName: father, admissionNo: adm, phone: cleanPhone(entry.phone) });
     if (plan.addedPreview.length < 6) plan.addedPreview.push(`${name}${adm ? ` (Adm. ${adm})` : ''}`);
   }
   return plan;
