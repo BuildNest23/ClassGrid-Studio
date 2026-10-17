@@ -43,6 +43,45 @@ const REMARKS_SCHEMA = {
   required: ['students'],
 };
 
+const MARKS_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    students: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          rollNo: { type: 'STRING' },
+          name: { type: 'STRING' },
+          marks: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: { subject: { type: 'STRING' }, value: { type: 'STRING' } },
+              required: ['subject', 'value'],
+            },
+          },
+        },
+        required: ['marks'],
+      },
+    },
+  },
+  required: ['students'],
+};
+
+function marksPrompt(subjects) {
+  const list = (Array.isArray(subjects) ? subjects : []).slice(0, 30).map(x => clip(x, 40)).filter(Boolean);
+  return (
+    'This file is a marks sheet: one row per student with marks in different subjects. ' +
+    'For every student return: rollNo, name, and marks as a list of {subject, value}. ' +
+    `Use these subject names exactly when the column matches one of them: ${JSON.stringify(list)}. ` +
+    'Ignore any other columns such as total, percentage, grade, rank or result. ' +
+    'Copy each mark exactly as written (a number, or A / AB / Absent for absent). ' +
+    'Leave out a subject when its cell is empty. Do not calculate, guess or correct anything. ' +
+    'Skip header rows, totals and page numbers.'
+  );
+}
+
 const GEN_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -167,8 +206,9 @@ export default async function handler(req, res) {
 
   if (req.body && req.body.mode === 'generate-remarks') return generateRemarks(req, res);
 
-  const { mimeType, data, mode } = req.body || {};
+  const { mimeType, data, mode, subjects } = req.body || {};
   const remarksMode = mode === 'remarks';
+  const marksMode = mode === 'marks';
   if (!ALLOWED_MIME.has(mimeType) || typeof data !== 'string' || !data) {
     return res.status(400).json({ error: 'Send a PDF, JPG, PNG or WEBP file.' });
   }
@@ -183,11 +223,11 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: remarksMode ? REMARKS_PROMPT : PROMPT }, { inline_data: { mime_type: mimeType, data } }] }],
+          contents: [{ parts: [{ text: marksMode ? marksPrompt(subjects) : remarksMode ? REMARKS_PROMPT : PROMPT }, { inline_data: { mime_type: mimeType, data } }] }],
           generationConfig: {
             temperature: 0,
             responseMimeType: 'application/json',
-            responseSchema: remarksMode ? REMARKS_SCHEMA : SCHEMA,
+            responseSchema: marksMode ? MARKS_SCHEMA : remarksMode ? REMARKS_SCHEMA : SCHEMA,
           },
         }),
       }
@@ -206,6 +246,20 @@ export default async function handler(req, res) {
     }
 
     const list = Array.isArray(parsed?.students) ? parsed.students.slice(0, MAX_STUDENTS) : [];
+
+    if (marksMode) {
+      const students = list
+        .map(s => ({
+          rollNo: clip(s?.rollNo, 10),
+          name: clip(s?.name, 80),
+          marks: (Array.isArray(s?.marks) ? s.marks : [])
+            .slice(0, 30)
+            .map(m => ({ subject: clip(m?.subject, 40), value: clip(m?.value, 10) }))
+            .filter(m => m.subject && m.value),
+        }))
+        .filter(s => (s.name || s.rollNo) && s.marks.length);
+      return res.status(200).json({ students });
+    }
 
     if (remarksMode) {
       const students = list
