@@ -203,7 +203,10 @@ export async function planStudentsImport(file: File, data: AppData): Promise<Stu
   const byId = new Map(data.students.map(s => [s.id, s]));
   const byAdm = new Map<string, (typeof data.students)[number]>();
   data.students.forEach(s => {
-    if (s.admissionNo) byAdm.set(s.admissionNo, s);
+    // Key by the same cleaned form the file values are compared with (the app allows "ADM/1001",
+    // the AI file is cleaned to "ADM1001"; a raw key would miss the match and add a duplicate student)
+    const k = cleanAdm(s.admissionNo);
+    if (k) byAdm.set(k, s);
   });
   const plan: StudentsImportPlan = {
     updates: {}, additions: [], changedStudents: 0, changedNames: 0, changedFathers: 0,
@@ -280,7 +283,7 @@ export async function planStudentsImport(file: File, data: AppData): Promise<Stu
     const father = cleanName(entry.fatherName);
     const key = `${lc(name)}|${lc(father)}`;
     const sameInApp = data.students.filter(s => lc(s.name) === lc(name));
-    const exactInApp = sameInApp.some(s => lc(s.fatherName || '') === lc(father) && (!adm || !s.admissionNo));
+    const exactInApp = sameInApp.some(s => lc(s.fatherName || '') === lc(father) && (!adm || !s.admissionNo || cleanAdm(s.admissionNo) === adm));
     if ((adm && seenNewAdm.has(adm)) || seenNewKey.has(key) || exactInApp) {
       plan.skippedDuplicate++;
       continue;

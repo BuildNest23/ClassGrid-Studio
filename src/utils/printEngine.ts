@@ -10,11 +10,19 @@ import { fitLongNames } from './fitText';
  */
 function extractDocumentTitle(contentHTML: string): string {
   try {
+    // Prefer the real sheet title; the generic header emits "Class: … • Incharge: …" (.print-sub)
+    // BEFORE .sheet-title, so a single alternation picked the subtitle as the job / PDF name.
     const titleMatch =
-      contentHTML.match(/<(?:h1|div|span)[^>]*class="[^"]*(?:sheet-title|dt-title-main|ps2-title-bar|ps2-title|print-sub|print-title)[^"]*"[^>]*>(.*?)<\/(?:h1|div|span)>/i) ||
+      contentHTML.match(/<(?:h1|div|span)[^>]*class="[^"]*(?:sheet-title|dt-title-main|ps2-title-bar|ps2-title|print-title)[^"]*"[^>]*>(.*?)<\/(?:h1|div|span)>/i) ||
+      contentHTML.match(/<(?:h1|div|span)[^>]*class="[^"]*print-sub[^"]*"[^>]*>(.*?)<\/(?:h1|div|span)>/i) ||
       contentHTML.match(/<h1[^>]*>(.*?)<\/h1>/i);
     if (titleMatch && titleMatch[1]) {
-      const stripped = titleMatch[1].replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+      const stripped = titleMatch[1]
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
       if (stripped && stripped.length <= 60) return stripped;
     }
   } catch {

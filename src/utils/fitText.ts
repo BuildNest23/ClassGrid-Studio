@@ -46,8 +46,11 @@ export async function fitLongNames(html: string): Promise<string> {
   }
 
   const isFullDoc = /<!doctype/i.test(html) || /<html/i.test(html);
-  const isLandscape = /ps2-land|landscape|reg-table/i.test(html);
-  const isReceipt = /\bfr\b|RECEIPT_PAGE/i.test(html);
+  // Detect the page type from the builders' root/table class names only. Matching the whole HTML
+  // (e.g. the word "fr" or "landscape" inside a name, remark, subject or note) picked the wrong
+  // measuring width and shrank every name on the sheet.
+  const isLandscape = /class="[^"]*\b(?:ps2-land|reg-table|dt-sheet)\b/i.test(html);
+  const isReceipt = /class="fr\b/i.test(html);
   const capsOn = loadCapsPrint();
 
   // Page width at 96 dpi matching real print dimensions

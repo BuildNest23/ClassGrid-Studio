@@ -97,7 +97,8 @@ export function normalizeData(raw: unknown): AppData {
           max: Number(x.max) || 100
         })),
       createdAt: Number(a.createdAt) || Date.now(),
-      locked: !!a.locked
+      // Keep the "Lock Grid" state (it was previously dropped on every load / undo / redo / import)
+      ...(a.locked ? { locked: true } : {})
     }));
 
   // ---- Funds ----
@@ -137,16 +138,21 @@ export function normalizeData(raw: unknown): AppData {
     });
   }
 
+  // Text fields must be strings: a non-string value in an imported backup would be rendered
+  // directly as a React child and crash the app ("Objects are not valid as a React child").
+  const str = (v: unknown, fallback: string): string =>
+    typeof v === "string" ? v : (v === null || v === undefined || typeof v === "object") ? fallback : String(v);
+
   return {
-    schoolName: src.schoolName ?? base.schoolName,
+    schoolName: str(src.schoolName, base.schoolName),
     emisCode: typeof src.emisCode === "string" ? src.emisCode : "",
     section: typeof src.section === "string" ? src.section : "",
-    academicYear: src.academicYear ?? base.academicYear,
-    className: src.className ?? base.className,
-    inchargeName: src.inchargeName ?? base.inchargeName,
-    schoolLogo: src.schoolLogo ?? base.schoolLogo,
+    academicYear: str(src.academicYear, base.academicYear),
+    className: str(src.className, base.className),
+    inchargeName: str(src.inchargeName, base.inchargeName),
+    schoolLogo: str(src.schoolLogo, base.schoolLogo),
     printSize: printSizes.includes(src.printSize) ? src.printSize : "m",
-    printNote: src.printNote ?? "",
+    printNote: str(src.printNote, ""),
     forceOrientation: orientations.includes(src.forceOrientation) ? src.forceOrientation : "",
     students,
     attendance,
