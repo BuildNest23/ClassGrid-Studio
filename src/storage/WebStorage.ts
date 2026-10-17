@@ -23,13 +23,23 @@ export class WebStorage implements StorageAdapter {
   }
 
   async loadAppData(): Promise<AppData | null> {
+    let raw: string | null = null;
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
+      raw = window.localStorage.getItem(STORAGE_KEY);
+    } catch (err) {
+      // Storage access blocked (e.g. privacy mode): nothing stored here to protect, keep the old behaviour
+      console.error('Failed to read AppData from localStorage:', err);
+      return null;
+    }
+    if (!raw) return null; // no record yet = genuinely fresh install
+    try {
       return JSON.parse(raw) as AppData;
     } catch (err) {
-      console.error('Failed to load AppData from localStorage:', err);
-      return null;
+      // An unreadable (corrupted) record must NOT be reported as "no data": the app would start
+      // with empty defaults and overwrite the real record on the next save. Throwing shows the
+      // "Could not open your records" retry screen instead (same behaviour as SqliteStorage).
+      console.error('Failed to parse AppData from localStorage:', err);
+      throw err;
     }
   }
 
