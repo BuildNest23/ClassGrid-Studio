@@ -1,4 +1,5 @@
 import { AI_FILE_APP, AI_FILE_VERSION } from './aiExchange';
+import type { Assessment } from '../types';
 
 /**
  * "Import from file" for the Students tab.
@@ -132,7 +133,7 @@ async function shrinkImage(file: File): Promise<Blob> {
   }
 }
 
-async function callProxy(file: File, mode: 'students' | 'remarks'): Promise<any[]> {
+async function callProxy(file: File, mode: 'students' | 'remarks' | 'marks', extra: Record<string, unknown> = {}): Promise<any[]> {
   if (!PROXY_URL) throw new Error('PDF and photo reading is not set up yet. Use an Excel or CSV file.');
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     throw new Error('You are offline. Connect to the internet to read PDFs and photos.');
@@ -153,7 +154,7 @@ async function callProxy(file: File, mode: 'students' | 'remarks'): Promise<any[
     res = await fetch(PROXY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mimeType, data, mode }),
+      body: JSON.stringify({ mimeType, data, mode, ...extra }),
       signal: ctrl.signal,
     });
   } catch {
@@ -167,7 +168,7 @@ async function callProxy(file: File, mode: 'students' | 'remarks'): Promise<any[
   if (!res.ok) throw new Error(body?.error || 'Could not read this file. Please try again.');
 
   const rows: any[] = Array.isArray(body?.students) ? body.students : [];
-  if (!rows.length) throw new Error(mode === 'remarks' ? 'No remarks were found in this file.' : 'No students were found in this file.');
+  if (!rows.length) throw new Error(mode === 'remarks' ? 'No remarks were found in this file.' : mode === 'marks' ? 'No marks were found in this file.' : 'No students were found in this file.');
   return rows;
 }
 
@@ -356,4 +357,180 @@ export function generatedRemarksToResultsFile(
     students: items.filter(i => remarks.has(i.n)).map(i => ({ id: i.id, remarks: remarks.get(i.n) })),
   };
   return new File([JSON.stringify(payload)], 'import.json', { type: 'application/json' });
+}
+
+
+// ---------- Marks (Results tab) ----------
+
+export interface MarkRow {
+  rollNo: string;
+  name: string;
+  marks: Record<string, string>; // assessment subject id -> value as written ("45", "A", ...)
+}
+
+type SubjectLike = { id: string; name: string; max: number };
+
+/** Matches a column heading / subject label from a file to a subject of the assessment. */
+function matchSubject(label: string, subjects: SubjectLike[]): string | null {
+  const h = norm(label);
+  if (!h) return null;
+  const exact = subjects.find(s => norm(s.name) === h);
+  if (exact) return exact.id;
+  if (h.length >= 3) {
+    const part = subjects.filter(s => {
+      const n = norm(s.name);
+      return n.length >= 3 && (n.includes(h) || h.includes(n));
+    });
+    if (part.length === 1) return part[0].id;
+  }
+  return null;
+}
+
+export async function readMarkRowsFromSheet(
+  file: File,
+  subjects: SubjectLike[]
+): Promise<{ rows: MarkRow[]; ignoredColumns: string[] }> {
+  if (file.size > MAX_SHEET_BYTES) throw new Error('This file is too large (over 5 MB).');
+  const XLSX = await import('xlsx');
+  let rows: unknown[][];
+  try {
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    rows = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '', blankrows: false });
+  } catch {
+    throw new Error('Could not open this file. Is it a real Excel or CSV file?');
+  }
+
+  let headerIdx = -1;
+  let cName = -1, cRoll = -1;
+  let subjectCols = new Map<number, string>();
+  let ignored: string[] = [];
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const r = rows[i] || [];
+    const nm = r.findIndex(isNameHeader);
+    const rl = r.findIndex(isRollHeader);
+    const cols = new Map<number, string>();
+    const skipped: string[] = [];
+    r.forEach((cell, c) => {
+      if (c === nm || c === rl) return;
+      const label = String(cell ?? '').trim();
+      if (!label) return;
+      const id = matchSubject(label, subjects);
+      if (id && ![...cols.values()].includes(id)) cols.set(c, id);
+      else skipped.push(label);
+    });
+    if ((nm >= 0 || rl >= 0) && cols.size > 0) {
+      headerIdx = i; cName = nm; cRoll = rl; subjectCols = cols; ignored = skipped;
+      break;
+    }
+  }
+  if (headerIdx < 0) {
+    throw new Error('Could not find the columns. Put headings like Roll No, Name and your subject names (' +
+      subjects.slice(0, 3).map(s => s.name).join(', ') + '…) in the first row.');
+  }
+
+  const out: MarkRow[] = [];
+  for (const r of rows.slice(headerIdx + 1)) {
+    const name = cName >= 0 ? String(r[cName] ?? '').trim() : '';
+    const rollNo = cRoll >= 0 ? String(r[cRoll] ?? '').trim() : '';
+    if (!name && !rollNo) continue;
+    const marks: Record<string, string> = {};
+    subjectCols.forEach((subId, c) => {
+      const v = String(r[c] ?? '').trim();
+      if (v) marks[subId] = v;
+    });
+    if (Object.keys(marks).length) out.push({ rollNo, name, marks });
+  }
+  if (!out.length) throw new Error('No marks found under the subject columns.');
+  return { rows: out, ignoredColumns: ignored };
+}
+
+export async function readMarkRowsWithAi(file: File, subjects: SubjectLike[]): Promise<MarkRow[]> {
+  const raw = await callProxy(file, 'marks', { subjects: subjects.map(s => s.name) });
+  const out: MarkRow[] = [];
+  for (const r of raw) {
+    const marks: Record<string, string> = {};
+    (Array.isArray(r?.marks) ? r.marks : []).forEach((m: any) => {
+      const id = matchSubject(String(m?.subject ?? ''), subjects);
+      const v = String(m?.value ?? '').trim();
+      if (id && v) marks[id] = v;
+    });
+    const name = String(r?.name ?? '').trim();
+    const rollNo = String(r?.rollNo ?? '').trim();
+    if ((name || rollNo) && Object.keys(marks).length) out.push({ rollNo, name, marks });
+  }
+  if (!out.length) throw new Error('No marks were found in this file.');
+  return out;
+}
+
+export interface MarksPlan {
+  updates: Record<string, Record<string, number | 'A'>>; // studentId -> subjectId -> mark
+  students: number;
+  cells: number; // marks that will be saved (new or changed)
+  overwritten: number; // of those, how many replace a different existing mark
+  unchanged: number;
+  overMax: number;
+  invalid: number;
+  unknownStudents: number;
+  examples: string[];
+}
+
+export function planMarksImport(
+  rows: MarkRow[],
+  students: { id: string; name: string; rollNo: string }[],
+  asmt: Assessment,
+  existing: Record<string, Record<string, number | 'A'>>
+): MarksPlan {
+  const byName = new Map<string, string[]>();
+  const byRoll = new Map<string, string>();
+  const nameOf = new Map<string, string>();
+  students.forEach(s => {
+    nameOf.set(s.id, s.name);
+    const k = nameKey(s.name || '');
+    if (k) byName.set(k, [...(byName.get(k) || []), s.id]);
+    const rk = rollKey(s.rollNo || '');
+    if (rk) byRoll.set(rk, s.id);
+  });
+  const subById = new Map(asmt.subjects.map(s => [s.id, s]));
+
+  const plan: MarksPlan = { updates: {}, students: 0, cells: 0, overwritten: 0, unchanged: 0, overMax: 0, invalid: 0, unknownStudents: 0, examples: [] };
+  const final: Record<string, Record<string, number | 'A'>> = {};
+
+  for (const r of rows) {
+    let id: string | undefined;
+    const names = r.name ? byName.get(nameKey(r.name)) : undefined;
+    if (names && names.length === 1) id = names[0];
+    else if (r.rollNo) id = byRoll.get(rollKey(r.rollNo));
+    if (!id) { plan.unknownStudents++; continue; }
+
+    for (const [subId, text] of Object.entries(r.marks)) {
+      const sub = subById.get(subId);
+      if (!sub) continue;
+      const t = text.trim();
+      let value: number | 'A';
+      if (/^(a|ab|abs|absent)$/i.test(t)) value = 'A';
+      else if (/^(\d+\.?\d*|\.\d+)$/.test(t)) {
+        value = Number(t);
+        if (!isFinite(value)) { plan.invalid++; continue; }
+        if (value > (Number(sub.max) || 0)) { plan.overMax++; continue; }
+      } else { plan.invalid++; continue; }
+      (final[id] ||= {})[subId] = value; // a student listed twice: the last row wins
+    }
+  }
+
+  for (const [sid, row] of Object.entries(final)) {
+    const cur = existing[sid] || {};
+    const patch: Record<string, number | 'A'> = {};
+    for (const [subId, v] of Object.entries(row)) {
+      if (cur[subId] === v) { plan.unchanged++; continue; }
+      patch[subId] = v;
+      plan.cells++;
+      if (cur[subId] !== undefined) plan.overwritten++;
+      if (plan.examples.length < 4) plan.examples.push(`${nameOf.get(sid) || ''}: ${subById.get(subId)!.name} ${v}`);
+    }
+    if (Object.keys(patch).length) {
+      plan.updates[sid] = patch;
+      plan.students++;
+    }
+  }
+  return plan;
 }
