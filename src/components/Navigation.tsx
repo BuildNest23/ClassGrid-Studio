@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   HelpCircle,
-  PenTool
+  PenTool,
+  Archive
 } from 'lucide-react';
 
 export const Navigation: React.FC = () => {
@@ -36,6 +37,7 @@ export const Navigation: React.FC = () => {
     { id: 'funds' as ActiveTab, label: 'Funds', icon: Wallet },
     { id: 'students' as ActiveTab, label: 'Students', icon: Users },
     { id: 'view' as ActiveTab, label: 'View Students', icon: FileText },
+    { id: 'classes' as ActiveTab, label: 'Classes', icon: Archive },
     { id: 'settings' as ActiveTab, label: 'Settings', icon: Settings },
   ];
 
@@ -59,6 +61,12 @@ export const Navigation: React.FC = () => {
       desc: 'Read-only directory · print or save as HD image'
     },
     {
+      id: 'classes' as ActiveTab,
+      label: 'Classes',
+      icon: Archive,
+      desc: 'Save, switch & start classes · keep every class safe'
+    },
+    {
       id: 'settings' as ActiveTab,
       label: 'School & Class Setup',
       icon: Settings,
@@ -76,6 +84,7 @@ export const Navigation: React.FC = () => {
     activeTab === 'dailytest' ||
     activeTab === 'students' ||
     activeTab === 'view' ||
+    activeTab === 'classes' ||
     activeTab === 'settings';
 
   return (
