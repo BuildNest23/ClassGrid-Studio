@@ -1,136 +1,154 @@
-# Results View Layout Redesign: Subject Grid, Collapsible Cards & Marks Grid Lock
+# ClassGrid Simplification: Per-Class "My Tools", Empty-Install Welcome & Dashboard Next-Step Hints
 
-Transform the Results assessment workflow in Classgrid Studio by replacing wide subject pills with a clean 2-to-3 column card grid, adding collapsible sections with informative summary hints to reclaim vertical screen space, and introducing a persistent marks grid lock to safeguard recorded student marks against accidental edits.
+A streamlined, teacher-first simplification for ClassGrid that reduces clutter while guaranteeing 100% backward compatibility for existing classrooms. Teachers get an optional Welcome Sheet on fresh installs, a compact collapsible "My Tools" card on Home and Settings, and contextual next-step guidance—with zero changes to `ResultsView.tsx` or the lock icon.
 
 ---
 
 ### User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following decisions were confirmed by the user in Phase 1 and govern the implementation:
-
-- **Confirmed Decision 1 (Subject Grid Density)**: Subjects will be rendered in a responsive grid of **2 columns on mobile devices** and **3 columns on larger screens (tablets/desktops)** with compact, auto-truncating subject names and max marks inputs.
-- **Confirmed Decision 2 (Collapsible Cards State)**: Subjects, Print Options, Edit with AI, and Assessment Details cards will remember their open or closed collapsed state per card using local storage persistence (`classgridResultsCollapse`).
-- **Confirmed Decision 3 (Grid Lock Persistence)**: The lock state (`locked: boolean`) will be stored directly on the active `Assessment` object so that once marks are locked, the protection remains active across all devices, sessions, and backup restores.
-- **Confirmed Decision 4 (Collapsible Sections Scope)**: Four key sections will be collapsible with clear summary hints when closed:
-  1. **Assessment Details (Header card)**: Shows pass percentage, student entry progress, and total max marks when collapsed.
-  2. **Subjects Card**: Shows count of subjects and total max marks (e.g., *"5 subjects · Total max: 500 — Tap to edit"*) when collapsed.
-  3. **Edit with AI Card**: Shows brief feature summary (e.g., *"Automated remarks via JSON export/import"*) when collapsed.
-  4. **Print Options Card**: Shows current print configuration (e.g., *"Design A (Colour) · Watermark Off · Tap to print"*) when collapsed.
+> All requirements from your latest corrections are strictly incorporated:
+>
+> 1. **Per-class tools storage**: Stored in optional `AppData.tools`. If old data has no `tools` field, **ALL tools default to ON** (`attendance: true, results: true, dailyTest: true, funds: true`).
+> 2. **Locked vs Optional tools**: **Students** is permanently locked ON (`students: true`). **Attendance**, **Results**, **Daily Test**, and **Funds** are optional and untickable.
+> 3. **Welcome sheet rules**: Shown **once per device** and **ONLY on a truly empty install**. Offers "Start fresh" (asks School Name, Class Name, Incharge Name, then My tools) AND "Restore from backup". **Every step has a "Skip" button**.
+> 4. **"My tools" card location**: Compact and collapsible card on **Home (Dashboard)**, plus the exact same card in **Settings**.
+> 5. **"Show advanced tools" switch**: Controls advanced tool visibility. "Backup to file", "Restore from file", and "Start new class" are **always visible** regardless of tool switches.
+> 6. **Plain labels & Next-step hint on Home**: Simple, jargon-free terminology and a prominent contextual guide banner pointing the teacher to their next action.
+> 7. **Zero modification to ResultsView**: `src/components/views/ResultsView.tsx` and its lock icon remain **completely untouched**.
+> 8. **Data migration integrity**: `normalizeData` preserves the `tools` field reliably across imports, undo/redo, and storage syncs.
 
 ---
 
 ### 1. Overview & Core Concept
 
-- **What It Does**: Enhances the teacher's mark-recording experience in `ResultsView.tsx`. When opening an assessment, teachers can fold away completed configuration cards (Subjects, Assessment info, Print options, and AI tools) into compact 1-line preview bars. The subjects list adopts an organized multi-column layout, and a prominent lock toggle prevents unintentional data loss or keystrokes during review and scrolling.
-- **Target Audience / Persona**: Classroom teachers and school administrators entering, reviewing, and printing exam marks on phones, tablets, or laptops.
-- **Key Value**:
-  - **Eliminates Vertical Scroll Fatigue**: Collapsing configured sections brings the marks spreadsheet directly into view immediately upon loading the assessment.
-  - **Accidental Edit Protection**: Prevents accidental clicks or keyboard presses in the marks table while inspecting student ranks or scrolling on touchscreens.
-  - **Cleaner Subject Management**: Subjects form an aligned grid rather than jagged wrapping pill lines, remaining legible while gracefully truncating extra-long subject titles.
+- **What It Does**: Allows teachers to simplify ClassGrid down to just what they use every day. Teachers can toggle off tools they don't need (e.g. Funds or Daily Tests) to clean up the navigation and Home view. Existing users and imported backups keep all tools active without any loss of functionality.
+- **Target Persona**: Everyday school teachers who want simplicity without losing powerful features when they need them.
+- **Key Value**: Clutter-free UI, instant next-step orientation for newcomers, and total preservation of existing data and workflows.
 
 ---
 
-### 2. User Experience & Visual Design
+### 2. User Experience & Flows
 
-#### A. Responsive Subject Grid (2 Cols Mobile / 3 Cols Desktop)
-- Replaces `<div className="flex flex-wrap gap-2">` with `<div className="grid grid-cols-2 md:grid-cols-3 gap-2">`.
-- Each subject tile features:
-  - A clean, snug card background with a hairline border (`border border-[#E7E5E4] dark:border-[#44403C] rounded-xl p-2`).
-  - An inline editable subject title input that truncates gracefully with ellipsis when long (`truncate font-bold text-xs`).
-  - A right-aligned max marks mini-badge input (`w-11 text-center font-mono text-xs rounded bg-white dark:bg-[#1C1917] border border-stone-200 dark:border-stone-700`).
-  - A subtle removal button (`X` icon) that triggers confirmation before deletion.
+#### A. Empty-Install Welcome Sheet (Once per device, truly empty install only)
+- **Condition**: Triggers only when `localStorage.getItem("classgridWelcomeDone") !== "1"` AND the database has 0 students, 0 assessments, and default school name.
+- **Flow**:
+  - **Screen 1**: Choice between **Start Fresh** or **Restore from Backup** (with file picker). Every screen has **Skip / Dismiss**.
+  - **Screen 2 (if Start Fresh)**: Quick 3-field setup — School Name, Class Name, Incharge Name (all optional, with **Skip** button).
+  - **Screen 3**: "My Tools" selection — Students locked ON, Attendance & Results checked, Daily Test & Funds unchecked (with **Skip** button).
+  - Clicking "Done" or "Skip" sets `classgridWelcomeDone = "1"` and opens Home.
 
-#### B. Collapsible Section Cards with Contextual Summary Hints
-- Each section header incorporates an interactive expand/collapse toggle button styled with a smooth chevron icon (`ChevronDown` / `ChevronRight` from `lucide-react`) and hover highlight.
-- **Summary Preview Hints (When Collapsed)**:
-  - **Assessment Details Card**: Header collapses into a slim status bar displaying `[Assessment Name]` alongside `Pass: 40% · 24/24 entered (100%) · Total max: 500`.
-  - **Subjects Card**: Displays `5 subjects · Total max: 500` with a quiet action hint `(Tap to view/edit)`.
-  - **Print Options Card**: Displays active print design (`Design A (Colour)` or `Design B (B&W)`), watermark status, and quick print triggers.
-  - **Edit with AI Card**: Displays a discreet summary `Export marks & generate automated student remarks`.
+#### B. Compact Collapsible "My Tools" Card (Home & Settings)
+- Rendered on both `DashboardView.tsx` and `SettingsView.tsx`.
+- **Collapsed state**: Compact 1-line bar showing active tools (e.g., *"Active: Students, Attendance, Results — Tap to edit"*).
+- **Expanded state**:
+  - Clean list of tools with toggle switches:
+    - **Students**: Always checked with a subtle lock indicator.
+    - **Attendance**: Toggle on/off.
+    - **Results**: Toggle on/off.
+  - **"Show advanced tools" switch**: When turned ON, reveals toggles for:
+    - **Daily Test Register**
+    - **Funds & Fees**
+  - **Permanent Actions (Always Visible)**:
+    - `[ Backup to File ]`
+    - `[ Restore from File ]`
+    - `[ Start New Class ]`
 
-#### C. Marks Grid Lock / Unlock Feature
-- Located at the top toolbar of the Marks Sheet table next to the table title / quick stats.
-- **Unlocked State (Default for new exams)**:
-  - Button shows `<Unlock className="w-3.5 h-3.5" /> Unlock` with neutral styling.
-  - All mark inputs, absent buttons, manual pass overrides, and remarks fields are fully editable.
-- **Locked State**:
-  - Button turns into an amber/emerald protective badge: `<Lock className="w-3.5 h-3.5" /> Locked` with an active indicator.
-  - A subtle notification strip or banner appears above the table: *"Marks are locked to prevent accidental changes. Tap Unlock to make edits."*
-  - All table inputs are marked `disabled` or `readOnly` with dimmed backgrounds and cursor-not-allowed affordances.
-  - Keyboard navigation and arrow key navigation still allow inspecting cells without altering content.
+#### C. Plain Labels & Contextual "Next-Step Hint" on Home
+- High-visibility hint card at the top of the Home view that adapts to current progress:
+  - If 0 students: *"Next step: Add your students to get started →"* (opens Students).
+  - If students enrolled & attendance not taken today: *"Next step: Take attendance for today →"* (opens Attendance).
+  - If attendance taken: *"Next step: Record marks in Results or review student records →"*.
+- Dismissible or collapsible if the teacher wants a clean dashboard.
 
----
-
-### 3. Key Product Decisions & Trade-Offs
-
-- **Decision 1: Grid Layout vs Pill List for Subjects**:
-  - *Chosen Approach*: Responsive CSS Grid (`grid-cols-2 md:grid-cols-3 gap-2`) with flex items inside each cell.
-  - *Why*: Provides clean horizontal and vertical rhythm across varying screen sizes; prevents irregular ragged rows when subject names vary in length.
-  - *Alternative Considered*: Flexbox with fixed widths (leads to unwanted wrapping gaps on different viewport widths).
-- **Decision 2: Local Storage for Collapsed States**:
-  - *Chosen Approach*: Store a compact JSON map `Record<string, boolean>` in `localStorage` under `classgridResultsCollapse`.
-  - *Why*: Preserves user workflow preference without bloating cloud/database schemas or altering document exchange files.
-- **Decision 3: Storing Lock on Assessment vs Session State**:
-  - *Chosen Approach*: Store `locked?: boolean` inside the `Assessment` interface in `src/types.ts`.
-  - *Why*: Teachers explicitly request protection after finishing exam entry so that colleagues or family members on shared devices do not modify finalized grades. Storing on the assessment ensures the lock persists across page reloads and device backups.
+#### D. Adaptive Navigation
+- `Navigation.tsx` renders tabs based on `data.tools`:
+  - Home and Students are always visible.
+  - Attendance, Results, Daily Test, and Funds only render if enabled in `data.tools`.
 
 ---
 
-### 4. Technical Architecture & Component Structure
+### 3. Files to Be Changed
+
+1. **`src/types.ts`**:
+   - Define `ClassTools` interface:
+     ```typescript
+     export interface ClassTools {
+       students: true;
+       attendance: boolean;
+       results: boolean;
+       dailyTest: boolean;
+       funds: boolean;
+     }
+     ```
+   - Add optional `tools?: ClassTools` to `AppData`.
+
+2. **`src/utils/migrate.ts`**:
+   - In `normalizeData(raw)`:
+     - If `src.tools` exists, sanitize into `ClassTools` (forcing `students: true`).
+     - If `src.tools` is undefined/absent (old class or old backup), default **ALL tools to ON**:
+       `tools: { students: true, attendance: true, results: true, dailyTest: true, funds: true }`.
+   - In `makeBaseData()`: default `tools` initialized.
+
+3. **`src/components/WelcomeSheet.tsx`** *(New component)*:
+   - Full 3-step modal with "Restore from backup", 3 info fields, tool picker, and "Skip" on every step.
+
+4. **`src/components/MyToolsCard.tsx`** *(New reusable component)*:
+   - Collapsible card containing the tool toggles, "Show advanced tools" toggle, and permanent Backup / Restore / Start New Class buttons. Used in both Home and Settings.
+
+5. **`src/components/views/DashboardView.tsx`**:
+   - Add Next-Step Hint banner.
+   - Insert `<MyToolsCard />`.
+   - Conditionally render Attendance heatmap, Results stats, and Funds summaries based on active `data.tools`.
+
+6. **`src/components/views/SettingsView.tsx`**:
+   - Insert `<MyToolsCard />` for easy management in setup.
+
+7. **`src/components/Navigation.tsx`**:
+   - Filter desktop and mobile navigation tabs based on `data.tools`.
+
+8. **`src/App.tsx`**:
+   - Mount `<WelcomeSheet />` for empty installs.
+
+*(Note: `src/components/views/ResultsView.tsx` and the lock icon will NOT be touched).*
+
+---
+
+### 4. Technical Architecture Diagram
 
 ```
-┌───────────────────────────────────────────────────────────────┐
-│                     ResultsView.tsx                          │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │ 1. Assessment Details Card [Collapsible]                │  │
-│  │    Open: Full rename, pass %, progress bar, delete      │  │
-│  │    Closed: Name · Pass % · Progress · Total Max         │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │ 2. Subjects Card [Collapsible]                          │  │
-│  │    Open: Grid 2-col/3-col subjects + Add Form           │  │
-│  │    Closed: "X subjects · Max YYY — Tap to edit"         │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │ 3. Marks Sheet Table Card                               │  │
-│  │    Header: Title · Status · [Lock/Unlock Toggle Button] │  │
-│  │    Table: Student rows, mark inputs (disabled if locked)│  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │ 4. Edit with AI Card [Collapsible]                      │  │
-│  │    Open: Export for AI / Import from AI controls        │  │
-│  │    Closed: "AI remarks export/import — Tap to expand"   │  │
-│  └─────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌─────────────────────────────────────────────────────────┐  │
-│  │ 5. Print Options Card [Collapsible]                     │  │
-│  │    Open: Style radio options, Watermark, Footer, Actions│  │
-│  │    Closed: "Design A (Colour) · Print actions ready"    │  │
-│  └─────────────────────────────────────────────────────────┘  │
-└───────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        ClassGrid Architecture                          │
+└────────────────────────────────────────────────────────────────────────┘
+                                    │
+               ┌────────────────────┴────────────────────┐
+               ▼                                         ▼
+    ┌───────────────────────┐                 ┌──────────────────────┐
+    │  ClassroomContext     │                 │   Persistent Storage │
+    │  - AppData            │◄───────────────►│   - localStorage     │
+    │    • tools?:ClassTools│                 │   - normalizeData    │
+    │      (old data = ALL) │                 │     (preserves tools)│
+    └──────────┬────────────┘                 └──────────────────────┘
+               │
+      ┌────────┴────────┬─────────────────────────┬──────────────────┐
+      ▼                 ▼                         ▼                  ▼
+┌──────────────┐ ┌──────────────┐          ┌──────────────┐   ┌──────────────┐
+│ WelcomeSheet │ │ MyToolsCard  │          │ Dashboard    │   │ Navigation   │
+│ - Empty-only │ │ - Collapsed  │          │ - Next-step  │   │ - Filtered by│
+│ - 3-step     │ │ - Advanced sw│          │   hint       │   │   data.tools │
+│ - Skip everywhere│- Backup/Restore/New   │ - Active     │   │ - Students   │
+│              │ │   always on  │          │   widgets    │   │   always on  │
+└──────────────┘ └──────────────┘          └──────────────┘   └──────────────┘
 ```
 
-#### Step-by-Step Implementation Sequence:
-1. **Types Update (`src/types.ts`)**: Add optional `locked?: boolean` to the `Assessment` interface.
-2. **Collapse State Utility (`src/utils/collapseState.ts`)**: Small helper to load and save collapsed card preferences from `localStorage`.
-3. **Subjects Grid Redesign (`src/components/views/ResultsView.tsx`)**:
-   - Re-architect subjects list into `grid grid-cols-2 md:grid-cols-3 gap-2`.
-   - Set up truncation and clean mini-inputs for subject names and maximum marks.
-4. **Collapsible Wrapper / Cards (`src/components/views/ResultsView.tsx`)**:
-   - Add collapse/expand controls with `ChevronDown` / `ChevronRight` icons.
-   - Render informative closed-state summary teasers for:
-     * Assessment Header Card
-     * Subjects Card
-     * Edit with AI Card
-     * Print Options Card
-5. **Marks Grid Lock Implementation (`src/components/views/ResultsView.tsx`)**:
-   - Add Lock/Unlock button next to table header with `Lock` / `Unlock` icons.
-   - Wire handler to toggle `activeAsmt.locked` via `saveData`.
-   - Apply `disabled={activeAsmt.locked}` or read-only styles to marks inputs, absent buttons, manual pass toggles, and remark inputs when locked.
-   - Display a clean banner when the table is locked with a 1-click Unlock shortcut.
-6. **Build Verification**: Run `compile_applet` to ensure zero compilation or type errors.
+---
+
+### 5. Verification Plan
+
+- **Compilation**: Run `compile_applet` to verify clean build with zero TypeScript or JSX errors.
+- **Backward Compatibility Test**: Existing data or data without `tools` loads with all 5 tools enabled.
+- **Empty Install Welcome Sheet**: Verify it only pops up when app is empty; verify every step has a working Skip button and Restore from backup button.
+- **My Tools Toggles**:
+  - Toggle tools on/off from Dashboard and Settings; verify navigation tabs and dashboard widgets show/hide immediately.
+  - Verify "Backup to file", "Restore from file", and "Start new class" remain visible at all times.
+- **Integrity**: Confirm `ResultsView.tsx` remains completely untouched.

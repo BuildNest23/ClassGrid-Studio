@@ -27,6 +27,8 @@ import { getLastAutoBackupTimestamp } from '../../storage/autoBackup';
 import { useCapsPrint, saveCapsPrint } from '../../utils/capsPrint';
 import { NewClassDialog, shelveOpenClass } from './ClassesView';
 import { setActiveShelfId, exportAllClasses, restoreClasses } from '../../utils/classShelf';
+import { MyToolsCard } from '../MyToolsCard';
+import { useClassgridPrefs, savePrefs } from '../../utils/prefs';
 
 const LAST_BACKUP_KEY = 'classgrid_last_backup';
 const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
@@ -82,6 +84,7 @@ export const SettingsView: React.FC = () => {
     fallbackActive?: boolean;
   } | null>(null);
   const capsPrint = useCapsPrint();
+  const [prefs, updatePrefs] = useClassgridPrefs();
 
   useEffect(() => {
     let mounted = true;
@@ -291,8 +294,8 @@ export const SettingsView: React.FC = () => {
         const classCount = (savedClasses as unknown[]).length;
         const ok = await uiConfirm(
           `Replace current data with imported backup?\n\nThis will overwrite the open class.${classCount ? `\nIt also restores ${classCount} saved class${classCount === 1 ? '' : 'es'} in the Classes tab.` : ''}`, {
-          title: "Import Backup",
-          yesText: "Import",
+          title: "Restore from file",
+          yesText: "Restore",
           danger: true,
           icon: "warning"
         });
@@ -309,6 +312,7 @@ export const SettingsView: React.FC = () => {
           }
         }
 
+        savePrefs({ welcomeDone: true });
         toast(restored ? `Backup imported. ${restored} saved class${restored === 1 ? '' : 'es'} restored.` : "Backup imported successfully.", "success");
         setActiveTab("dashboard");
       } catch (err: unknown) {
@@ -385,10 +389,13 @@ export const SettingsView: React.FC = () => {
           <>Fill in <b>Class Name</b> and your <b>School Name</b> first. They appear at the top of every printout. EMIS Code and Section are optional.</>,
           <>Tap <b>Save Setup</b> after changing these details. They are not saved until you do.</>,
           <>If a printout runs onto a second page, choose a smaller <b>Print Size</b>. You can also add your <b>School Logo</b>.</>,
-          <>Tap <b>Export Backup</b> regularly and keep the file safe, for example on WhatsApp or Google Drive. <b>Import Backup</b> restores it on any phone or computer.</>
+          <>Tap <b>Backup to file</b> regularly and keep the file safe, for example on WhatsApp or Google Drive. <b>Restore from file</b> restores it on any phone or computer.</>
         ]}
         note="Careful: Load Demo Data and Reset Everything both replace your real records. Export a backup first."
       />
+
+      {/* My Tools Configuration Card */}
+      <MyToolsCard />
 
       {/* Classroom Setup Form */}
       <div className="bg-white dark:bg-[#232019] border border-[#E5DFD0] dark:border-[#3A3527] rounded-xl p-4 shadow-xs">
@@ -513,7 +520,7 @@ export const SettingsView: React.FC = () => {
           Controls document formatting across all printed sheets. If reports overflow to a second page, pick a smaller size.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${prefs.showAdvanced ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
           <div>
             <label className="block text-xs font-bold text-[#6E6656] dark:text-[#A79B85] uppercase mb-1">
               Print Size Scaling
@@ -531,53 +538,59 @@ export const SettingsView: React.FC = () => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-[#6E6656] dark:text-[#A79B85] uppercase mb-1">
-              Orientation Override
-            </label>
-            <select
-              value={data.forceOrientation}
-              onChange={e => handleForceOrientationChange(e.target.value as '' | 'portrait' | 'landscape')}
-              className="w-full p-2 text-xs rounded-lg border border-[#DAD3C3] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] text-inherit"
-            >
-              <option value="">Auto (Recommended)</option>
-              <option value="portrait">Force Portrait</option>
-              <option value="landscape">Force Landscape</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="pt-2 border-t border-[#E5DFD0] dark:border-[#3A3527]">
-          <label className="flex items-start gap-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={capsPrint}
-              onChange={e => {
-                saveCapsPrint(e.target.checked);
-                toast(e.target.checked ? "Capitalize text on prints enabled" : "Capitalize text on prints disabled", "info");
-              }}
-              className="mt-0.5 rounded border-[#DAD3C3] text-red-800 focus:ring-red-800 dark:border-[#3A3527] dark:bg-[#1F1C17] w-4 h-4 cursor-pointer"
-            />
-            <div className="space-y-0.5">
-              <span className="text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
-                Capitalize text on prints
-              </span>
-              <p className="text-[11px] text-[#6E6656] dark:text-[#A79B85]">
-                Prints names, subjects and headings in CAPITAL letters. Remarks and notes stay as typed.
-              </p>
+          {prefs.showAdvanced && (
+            <div>
+              <label className="block text-xs font-bold text-[#6E6656] dark:text-[#A79B85] uppercase mb-1">
+                Orientation Override
+              </label>
+              <select
+                value={data.forceOrientation}
+                onChange={e => handleForceOrientationChange(e.target.value as '' | 'portrait' | 'landscape')}
+                className="w-full p-2 text-xs rounded-lg border border-[#DAD3C3] dark:border-[#3A3527] bg-[#F8F5EE] dark:bg-[#1F1C17] text-inherit"
+              >
+                <option value="">Auto (Recommended)</option>
+                <option value="portrait">Force Portrait</option>
+                <option value="landscape">Force Landscape</option>
+              </select>
             </div>
-          </label>
+          )}
         </div>
 
-        <div>
-          <button
-            type="button"
-            onClick={handleResetPrintSettings}
-            className="py-1.5 px-3 text-xs font-bold rounded-lg bg-[#EFEBE2] dark:bg-[#2A261F] text-[#232019] dark:text-[#EFE9DD] hover:bg-[#E5DFD0]"
-          >
-            Reset Print Settings
-          </button>
-        </div>
+        {prefs.showAdvanced && (
+          <>
+            <div className="pt-2 border-t border-[#E5DFD0] dark:border-[#3A3527]">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={capsPrint}
+                  onChange={e => {
+                    saveCapsPrint(e.target.checked);
+                    toast(e.target.checked ? "Capitalize text on prints enabled" : "Capitalize text on prints disabled", "info");
+                  }}
+                  className="mt-0.5 rounded border-[#DAD3C3] text-red-800 focus:ring-red-800 dark:border-[#3A3527] dark:bg-[#1F1C17] w-4 h-4 cursor-pointer"
+                />
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-[#232019] dark:text-[#EFE9DD]">
+                    Capitalize text on prints
+                  </span>
+                  <p className="text-[11px] text-[#6E6656] dark:text-[#A79B85]">
+                    Prints names, subjects and headings in CAPITAL letters. Remarks and notes stay as typed.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                onClick={handleResetPrintSettings}
+                className="py-1.5 px-3 text-xs font-bold rounded-lg bg-[#EFEBE2] dark:bg-[#2A261F] text-[#232019] dark:text-[#EFE9DD] hover:bg-[#E5DFD0]"
+              >
+                Reset Print Settings
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* School Logo Upload Card */}
@@ -622,29 +635,31 @@ export const SettingsView: React.FC = () => {
         </p>
       </div>
 
-      {/* Example Demo Data (50 Students) Card */}
-      <div className="bg-white dark:bg-[#232019] border border-emerald-300 dark:border-emerald-800/80 rounded-xl p-4 shadow-xs space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="text-sm font-bold font-serif-academic text-emerald-900 dark:text-emerald-300 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-              <span>Example Demo Data (50 Students)</span>
-            </h3>
-            <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
-              Populate a complete, realistic dataset of 50 students with full Attendance roll calls, Daily Quick Tests, SBA and Term Examinations, and Class Funds to test all features and print registers.
-            </p>
+      {/* Example Demo Data (50 Students) Card - Hidden when showAdvanced is OFF */}
+      {prefs.showAdvanced && (
+        <div className="bg-white dark:bg-[#232019] border border-emerald-300 dark:border-emerald-800/80 rounded-xl p-4 shadow-xs space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-bold font-serif-academic text-emerald-900 dark:text-emerald-300 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                <span>Example Demo Data (50 Students)</span>
+              </h3>
+              <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
+                Populate a complete, realistic dataset of 50 students with full Attendance roll calls, Daily Quick Tests, SBA and Term Examinations, and Class Funds to test all features and print registers.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <button
-          type="button"
-          onClick={handleLoadSampleData}
-          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 active:bg-emerald-900 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>Load 50 Sample Students & Demo Records</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={handleLoadSampleData}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 active:bg-emerald-900 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-xs"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Load 50 Sample Students &amp; Demo Records</span>
+          </button>
+        </div>
+      )}
 
       {/* Backup & Restore Card */}
       <div className="bg-white dark:bg-[#232019] border border-[#E5DFD0] dark:border-[#3A3527] rounded-xl p-4 shadow-xs space-y-3">
@@ -731,11 +746,11 @@ export const SettingsView: React.FC = () => {
             icon={Capacitor.isNativePlatform() ? Share2 : Download}
             onClick={handleExportBackup}
           >
-            {Capacitor.isNativePlatform() ? "Export / Share Backup" : "Export Backup"}
+            Backup to file
           </ActionButton>
           <label className="w-full min-h-12 px-2.5 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap transition-colors select-none cursor-pointer bg-stone-50 hover:bg-stone-100 active:bg-stone-200 text-stone-800 border border-stone-200 dark:bg-stone-800/90 dark:hover:bg-stone-700/90 dark:text-stone-200 dark:border-stone-700">
             <Upload className="w-4 h-4 shrink-0" />
-            <span className="truncate">Import Backup</span>
+            <span className="truncate">Restore from file</span>
             <input type="file" accept=".json,application/json" onChange={handleImportBackup} className="hidden" />
           </label>
         </ActionGrid>
@@ -792,34 +807,38 @@ export const SettingsView: React.FC = () => {
           >
             Start new class
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("classes")}
-            className="py-2 px-3 text-xs font-bold rounded-lg bg-[#EFEBE2] dark:bg-[#2A261F] text-[#232019] dark:text-[#EFE9DD] hover:bg-[#E5DFD0] cursor-pointer"
-          >
-            Open Classes
-          </button>
+          {prefs.showAdvanced && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("classes")}
+              className="py-2 px-3 text-xs font-bold rounded-lg bg-[#EFEBE2] dark:bg-[#2A261F] text-[#232019] dark:text-[#EFE9DD] hover:bg-[#E5DFD0] cursor-pointer"
+            >
+              Open Classes
+            </button>
+          )}
         </div>
       </div>
       {showNewClass && <NewClassDialog onClose={() => setShowNewClass(false)} onDone={() => setActiveTab("dashboard")} />}
 
-      {/* Danger Zone */}
-      <div className="bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-900 rounded-xl p-4 shadow-xs space-y-2">
-        <h3 className="text-sm font-bold font-serif-academic text-[#991B1B] dark:text-red-400 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-rose-600" />
-          <span>Danger Zone — Reset Everything</span>
-        </h3>
-        <p className="text-xs text-[#991B1B] dark:text-red-300 leading-relaxed">
-          Wipes the open class completely (students, attendance, assessments, fund payments). A copy of it is put in Classes first, and classes already saved there are not touched. For a normal new class, use Start a new class above instead.
-        </p>
-        <button
-          type="button"
-          onClick={handleResetEverything}
-          className="py-2 px-3 text-xs font-bold rounded-lg bg-[#991B1B] text-white hover:bg-[#7F1D1D] cursor-pointer"
-        >
-          Reset Everything
-        </button>
-      </div>
+      {/* Danger Zone — Hidden when showAdvanced is OFF */}
+      {prefs.showAdvanced && (
+        <div className="bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-900 rounded-xl p-4 shadow-xs space-y-2">
+          <h3 className="text-sm font-bold font-serif-academic text-[#991B1B] dark:text-red-400 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600" />
+            <span>Danger Zone — Reset Everything</span>
+          </h3>
+          <p className="text-xs text-[#991B1B] dark:text-red-300 leading-relaxed">
+            Wipes the open class completely (students, attendance, assessments, fund payments). A copy of it is put in Classes first, and classes already saved there are not touched. For a normal new class, use Start a new class above instead.
+          </p>
+          <button
+            type="button"
+            onClick={handleResetEverything}
+            className="py-2 px-3 text-xs font-bold rounded-lg bg-[#991B1B] text-white hover:bg-[#7F1D1D] cursor-pointer"
+          >
+            Reset Everything
+          </button>
+        </div>
+      )}
     </div>
   );
 };

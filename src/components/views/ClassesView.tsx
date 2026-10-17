@@ -51,6 +51,7 @@ export async function shelveOpenClass(current: AppData): Promise<ShelfEntry | nu
 export const NewClassDialog: React.FC<{ onClose: () => void; onDone?: () => void }> = ({ onClose, onDone }) => {
   const { data, replaceAllData, toast } = useClassroom();
   const [keepSchool, setKeepSchool] = useState(true);
+  const [keepTools, setKeepTools] = useState(true);
   const [busy, setBusy] = useState(false);
   const blank = isBlankClass(data);
 
@@ -59,6 +60,17 @@ export const NewClassDialog: React.FC<{ onClose: () => void; onDone?: () => void
     try {
       const saved = await shelveOpenClass(data); // safety copy first; stop if it fails
       const fresh = makeNewClassData(data, keepSchool);
+      if (keepTools && data.tools) {
+        fresh.tools = { ...data.tools };
+      } else {
+        fresh.tools = {
+          students: true,
+          attendance: true,
+          results: true,
+          dailyTest: false,
+          funds: false
+        };
+      }
       replaceAllData(fresh); // goes through normal save, so the header Undo can bring it back
       setActiveShelfId(null);
       toast(
@@ -80,7 +92,7 @@ export const NewClassDialog: React.FC<{ onClose: () => void; onDone?: () => void
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
       onMouseDown={e => { if (e.target === e.currentTarget && !busy) onClose(); }}
     >
-      <div className="w-full sm:max-w-md bg-white dark:bg-stone-900 rounded-t-3xl sm:rounded-2xl border border-stone-200 dark:border-stone-800 shadow-2xl p-5 space-y-4">
+      <div className="w-full sm:max-w-md bg-white dark:bg-stone-900 rounded-t-3xl sm:rounded-2xl border border-stone-200 dark:border-stone-800 shadow-2xl p-5 space-y-3.5">
         <div>
           <h3 className="text-base font-bold text-stone-900 dark:text-stone-100">Start a new class</h3>
           <p className="mt-1 text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
@@ -90,7 +102,7 @@ export const NewClassDialog: React.FC<{ onClose: () => void; onDone?: () => void
           </p>
         </div>
 
-        <label className="flex items-start gap-3 p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 cursor-pointer">
+        <label className="flex items-start gap-3 p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 cursor-pointer min-h-[44px]">
           <input
             type="checkbox"
             checked={keepSchool}
@@ -103,7 +115,38 @@ export const NewClassDialog: React.FC<{ onClose: () => void; onDone?: () => void
           </span>
         </label>
 
-        <div className="flex gap-2.5">
+        {/* Use the same tools as this class? (Yes / No) */}
+        <div className="p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50 space-y-2">
+          <span className="text-xs font-bold text-stone-900 dark:text-stone-100 block">
+            Use the same tools as this class?
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setKeepTools(true)}
+              className={`flex-1 min-h-[44px] py-1.5 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                keepTools
+                  ? 'bg-[#991B1B] text-white border-transparent'
+                  : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700'
+              }`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => setKeepTools(false)}
+              className={`flex-1 min-h-[44px] py-1.5 px-3 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                !keepTools
+                  ? 'bg-[#991B1B] text-white border-transparent'
+                  : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700'
+              }`}
+            >
+              No
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-2.5 pt-1">
           <button
             type="button"
             onClick={onClose}
@@ -319,7 +362,7 @@ export const ClassesView: React.FC = () => {
 
         <ActionGrid cols={2}>
           <ActionButton variant="primary" icon={Save} onClick={handleSaveCurrent} disabled={busy || openIsBlank}>
-            {activeEntry ? 'Update card' : 'Save current class'}
+            Save this class
           </ActionButton>
           <ActionButton variant="secondary" icon={Plus} onClick={() => setShowNew(true)} disabled={busy}>
             Start new class
@@ -357,7 +400,7 @@ export const ClassesView: React.FC = () => {
         ) : list.length === 0 ? (
           <div className="py-6 text-center text-xs text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
             No saved classes yet.<br />
-            Tap <b>Save current class</b>, or <b>Start new class</b> (it saves the open one for you).
+            Tap <b>Save this class</b>, or <b>Start new class</b> (it saves the open one for you).
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -409,10 +452,10 @@ export const ClassesView: React.FC = () => {
         </p>
         <ActionGrid cols={2}>
           <ActionButton variant="secondary" icon={Download} onClick={handleBackupAll} disabled={busy}>
-            Back up all classes
+            Backup everything
           </ActionButton>
           <ActionButton variant="secondary" icon={Upload} onClick={() => fileRef.current?.click()} disabled={busy}>
-            Add from file
+            Open a class file
           </ActionButton>
         </ActionGrid>
         <input ref={fileRef} type="file" accept=".json,application/json" onChange={handleImportFile} className="hidden" />

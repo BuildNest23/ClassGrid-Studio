@@ -20,8 +20,10 @@ import {
   Wallet,
   AlertTriangle,
   GraduationCap,
-  X
+  X,
+  ArrowRight
 } from 'lucide-react';
+import { MyToolsCard } from '../MyToolsCard';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -91,6 +93,98 @@ export const DashboardView: React.FC = () => {
       trendIndicator = <span className="text-[#B23A32] dark:text-[#FCA5A5] text-xs font-bold">▼ {diff}% vs last month</span>;
     }
   }
+
+  const tools = data.tools || {
+    students: true,
+    attendance: true,
+    results: true,
+    dailyTest: true,
+    funds: true,
+  };
+
+  const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('classgrid_dismiss_next_step') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const dismissNextStep = () => {
+    try {
+      sessionStorage.setItem('classgrid_dismiss_next_step', '1');
+    } catch { /* ignore */ }
+    setHintDismissed(true);
+  };
+
+  const getNextStep = () => {
+    if (hintDismissed) return null;
+
+    // 1. no students -> Add students
+    if (totalStudents === 0) {
+      return {
+        icon: GraduationCap,
+        title: "Add your students",
+        desc: "Enroll students with their names and roll numbers to begin.",
+        buttonText: "Add Students",
+        action: () => setActiveTab("students")
+      };
+    }
+
+    // 2. attendance on and not taken today -> Take attendance
+    if (tools.attendance && (!day || (!day.holiday && !c.taken))) {
+      return {
+        icon: ClipboardList,
+        title: "Take today's attendance",
+        desc: `Mark present, absent, or leave for today (${prettyDate(todayK)}).`,
+        buttonText: "Take Attendance",
+        action: () => setActiveTab("attendance")
+      };
+    }
+
+    // 3. results on and no assessment -> Create assessment
+    if (tools.results && data.assessments.length === 0) {
+      return {
+        icon: BarChart3,
+        title: "Create an assessment",
+        desc: "Add an examination or test with subjects to record marks.",
+        buttonText: "Create Assessment",
+        action: () => setActiveTab("results")
+      };
+    }
+
+    // 4. results on and marks missing -> Enter marks
+    if (tools.results && data.assessments.length > 0) {
+      const anyMissing = data.assessments.some(a => {
+        if (!a.subjects || a.subjects.length === 0) return true;
+        const entered = assessmentEntryCount(a.id);
+        return entered < totalStudents;
+      });
+      if (anyMissing) {
+        return {
+          icon: BarChart3,
+          title: "Enter marks",
+          desc: "Some student marks or subjects are incomplete in Results.",
+          buttonText: "Enter Marks",
+          action: () => setActiveTab("results")
+        };
+      }
+    }
+
+    // 5. funds on and no fund -> Add a fund
+    if (tools.funds && data.funds.length === 0) {
+      return {
+        icon: Wallet,
+        title: "Add a fund",
+        desc: "Create a fee or fund collection to track student payments.",
+        buttonText: "Add a Fund",
+        action: () => setActiveTab("funds")
+      };
+    }
+
+    return null;
+  };
+  const nextStep = getNextStep();
 
   // 30-day heatmap matching ClassGrid sample colors
   const renderHeatmap = () => {
@@ -198,6 +292,46 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
+      {/* Next-Step Hint Banner (Dismissible for session) */}
+      {nextStep && (
+        <div className="relative bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3 flex-wrap border-l-4 border-l-[#991B1B]">
+          <div className="flex items-center gap-3 min-w-0 pr-6 sm:pr-0">
+            <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/70 text-[#991B1B] dark:text-[#F87171] flex items-center justify-center shrink-0">
+              <nextStep.icon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#991B1B] dark:text-[#F87171] block">
+                Next Step
+              </span>
+              <h4 className="text-sm font-bold text-[#1C1917] dark:text-[#F5F5F4] truncate">
+                {nextStep.title}
+              </h4>
+              <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
+                {nextStep.desc}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={nextStep.action}
+              className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold bg-[#991B1B] hover:bg-[#7F1D1D] text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
+            >
+              <span>{nextStep.buttonText}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={dismissNextStep}
+              title="Dismiss hint for this session"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-xl cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top 2 Stat Boxes */}
       <div className="grid grid-cols-2 gap-2.5">
         <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 text-center shadow-xs">
@@ -213,7 +347,7 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* Class Snapshot */}
-      {totalStudents > 0 && (
+      {totalStudents > 0 && (tools.attendance || tools.results || tools.funds) && (
         <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] border-l-4 border-l-[#B91C1C] dark:border-l-[#F87171] rounded-2xl p-4 shadow-xs">
           <h3 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4] mb-1 flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-red-800 dark:text-red-400" />
@@ -221,53 +355,61 @@ export const DashboardView: React.FC = () => {
           </h3>
           <p className="text-xs text-[#78716C] dark:text-[#A8A29E] mb-3">How your class is doing right now.</p>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-            <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
-              <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
-                {attThisMonth.denom ? `${attThisMonth.pct}%` : "—"}
-              </b>
-              <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Month Attendance</span>
-              <div className="mt-1">{trendIndicator}</div>
-              <div className="text-[11px] font-bold text-[#2E5A8A] dark:text-[#8AB4DC] mt-1">
-                Today: {todayDenom ? `${todayPct}%` : "—"}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {tools.attendance && (
+              <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
+                <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
+                  {attThisMonth.denom ? `${attThisMonth.pct}%` : "—"}
+                </b>
+                <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Month Attendance</span>
+                <div className="mt-1">{trendIndicator}</div>
+                <div className="text-[11px] font-bold text-[#2E5A8A] dark:text-[#8AB4DC] mt-1">
+                  Today: {todayDenom ? `${todayPct}%` : "—"}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
-              <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
-                {asmtStats && asmtStats.entered ? `${asmtStats.avg}%` : "—"}
-              </b>
-              <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Latest Test Avg</span>
-              <span className="text-[11px] text-[#A8A29E] block truncate mt-1">
-                {latestAsmt ? latestAsmt.name : "No tests yet"}
-              </span>
-            </div>
+            {tools.results && (
+              <>
+                <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
+                  <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
+                    {asmtStats && asmtStats.entered ? `${asmtStats.avg}%` : "—"}
+                  </b>
+                  <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Latest Test Avg</span>
+                  <span className="text-[11px] text-[#A8A29E] block truncate mt-1">
+                    {latestAsmt ? latestAsmt.name : "No tests yet"}
+                  </span>
+                </div>
 
-            <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
-              <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
-                {asmtStats && asmtStats.entered ? `${asmtStats.passRate}%` : "—"}
-              </b>
-              <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Pass Rate</span>
-              <span className="text-[11px] text-[#A8A29E] block mt-1">
-                {asmtStats && asmtStats.entered ? `${asmtStats.passed} of ${asmtStats.entered} passed` : "—"}
-              </span>
-            </div>
+                <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
+                  <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
+                    {asmtStats && asmtStats.entered ? `${asmtStats.passRate}%` : "—"}
+                  </b>
+                  <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Pass Rate</span>
+                  <span className="text-[11px] text-[#A8A29E] block mt-1">
+                    {asmtStats && asmtStats.entered ? `${asmtStats.passed} of ${asmtStats.entered} passed` : "—"}
+                  </span>
+                </div>
+              </>
+            )}
 
-            <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
-              <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
-                {fundsSummary.fundCount ? `${fundsSummary.pct}%` : "—"}
-              </b>
-              <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Funds Collected</span>
-              <span className="text-[11px] text-[#A8A29E] block truncate mt-1">
-                {fundsSummary.fundCount ? `${fmtMoney(fundsSummary.collected)} / ${fmtMoney(fundsSummary.target)}` : "No funds yet"}
-              </span>
-            </div>
+            {tools.funds && (
+              <div className="p-3.5 rounded-xl bg-[#FAFAF9] dark:bg-[#0C0A09] border border-[#E7E5E4] dark:border-[#44403C]">
+                <b className="block text-xl text-[#1C1917] dark:text-[#F5F5F4]">
+                  {fundsSummary.fundCount ? `${fundsSummary.pct}%` : "—"}
+                </b>
+                <span className="text-xs font-semibold block text-[#78716C] dark:text-[#A8A29E]">Funds Collected</span>
+                <span className="text-[11px] text-[#A8A29E] block truncate mt-1">
+                  {fundsSummary.fundCount ? `${fmtMoney(fundsSummary.collected)} / ${fmtMoney(fundsSummary.target)}` : "No funds yet"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Today's Attendance Card */}
-      {totalStudents > 0 && (
+      {tools.attendance && totalStudents > 0 && (
         <div className={`bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs border-l-4 ${
           !day ? 'border-l-[#B4791F]' : day.holiday ? 'border-l-[#2E5A8A]' : (c.absent ? 'border-l-[#B23A32]' : 'border-l-[#065F46]')
         }`}>
@@ -349,7 +491,7 @@ export const DashboardView: React.FC = () => {
       )}
 
       {/* Recent Assessments Card */}
-      {data.assessments.length > 0 && (
+      {tools.results && data.assessments.length > 0 && (
         <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs border-l-4 border-l-[#2E5A8A]">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4] flex items-center gap-2">
@@ -404,7 +546,7 @@ export const DashboardView: React.FC = () => {
       )}
 
       {/* Recent Funds Card */}
-      {data.funds.length > 0 && (
+      {tools.funds && data.funds.length > 0 && (
         <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-2xl p-4 shadow-xs border-l-4 border-l-[#B4791F]">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4] flex items-center gap-2">
@@ -511,6 +653,9 @@ export const DashboardView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* My Tools Card at the very bottom of Home */}
+      <MyToolsCard className="mt-1" />
     </div>
   );
 };

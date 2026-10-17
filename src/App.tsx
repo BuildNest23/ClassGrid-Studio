@@ -5,6 +5,7 @@ import { Navigation } from './components/Navigation';
 import { ToastContainer } from './components/ToastContainer';
 import { ConfirmModal, PromptModal } from './components/ConfirmModal';
 import { InfoModal, HelpModal } from './components/InfoModal';
+import { WelcomeSheet } from './components/WelcomeSheet';
 
 import { DashboardView } from './components/views/DashboardView';
 import { StudentsView } from './components/views/StudentsView';
@@ -23,9 +24,9 @@ const TAB_TITLES: Record<string, string> = {
   dailytest: 'Daily Test Register',
   results: 'Results & Examinations',
   funds: 'Funds & Fees',
-  students: 'Students Master',
-  view: 'Student Directory',
-  settings: 'School Setup',
+  students: 'Students',
+  view: 'Student list (print)',
+  settings: 'Class details & backup',
   classes: 'Classes'
 };
 
@@ -96,6 +97,7 @@ const MainContent: React.FC = () => {
       <PromptModal />
       <InfoModal />
       <HelpModal />
+      <WelcomeSheet />
     </div>
   );
 };

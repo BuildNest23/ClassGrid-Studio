@@ -50,6 +50,14 @@ export interface FundPayment {
 
 export type PrintSizeKey = 'xs' | 's' | 'm' | 'l' | 'xl';
 
+export interface ClassTools {
+  students: true;
+  attendance: boolean;
+  results: boolean;
+  dailyTest: boolean;
+  funds: boolean;
+}
+
 export interface AppData {
   schoolName: string;
   emisCode: string; // optional
@@ -70,6 +78,7 @@ export interface AppData {
   funds: Fund[];
   fundPayments: Record<string, Record<string, FundPayment>>; // fundId -> studentId -> payment
   dailyTests: Record<string, Record<string, number | 'A'>>; // dateKey (YYYY-MM-DD) -> studentId -> mark (0-10) or 'A'
+  tools?: ClassTools;
 }
 
 export type ActiveTab = 'dashboard' | 'students' | 'attendance' | 'dailytest' | 'results' | 'funds' | 'view' | 'settings' | 'classes';

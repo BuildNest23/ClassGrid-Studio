@@ -297,6 +297,22 @@ export const ClassroomProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
+  // If the last-open tab belongs to a hidden tool, open Home instead
+  useEffect(() => {
+    if (!isHydrated) return;
+    const tools = data.tools;
+    if (!tools) return;
+    if (activeTab === 'attendance' && !tools.attendance) {
+      setActiveTab('dashboard');
+    } else if (activeTab === 'results' && !tools.results) {
+      setActiveTab('dashboard');
+    } else if (activeTab === 'dailytest' && !tools.dailyTest) {
+      setActiveTab('dashboard');
+    } else if (activeTab === 'funds' && !tools.funds) {
+      setActiveTab('dashboard');
+    }
+  }, [data.tools, activeTab, isHydrated, setActiveTab]);
+
   const setActiveAssessmentId = useCallback((id: string | null) => {
     setActiveAssessmentIdState(id);
     if (id) {

@@ -13,62 +13,82 @@ import {
   X,
   HelpCircle,
   PenTool,
-  Archive
+  Archive,
+  SlidersHorizontal
 } from 'lucide-react';
+import { useClassgridPrefs } from '../utils/prefs';
 
 export const Navigation: React.FC = () => {
-  const { activeTab, setActiveTab, isTodayAttendanceTaken, openHelp } = useClassroom();
+  const { activeTab, setActiveTab, isTodayAttendanceTaken, openHelp, data } = useClassroom();
   const [showMoreSheet, setShowMoreSheet] = useState(false);
+  const [prefs, updatePrefs] = useClassgridPrefs();
+
+  const tools = data.tools || {
+    students: true,
+    attendance: true,
+    results: true,
+    dailyTest: true,
+    funds: true,
+  };
 
   const showAttBadge = !isTodayAttendanceTaken();
 
-  const mainTabs = [
-    { id: 'dashboard' as ActiveTab, label: 'Home', icon: LayoutDashboard },
-    { id: 'attendance' as ActiveTab, label: 'Attendance', icon: ClipboardCheck, hasBadge: showAttBadge },
-    { id: 'results' as ActiveTab, label: 'Results', icon: BarChart3 },
-    { id: 'funds' as ActiveTab, label: 'Funds', icon: Wallet },
-  ];
-
+  // Desktop navigation: filter by active tools and advanced status
   const desktopAllTabs = [
     { id: 'dashboard' as ActiveTab, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'attendance' as ActiveTab, label: 'Attendance', icon: ClipboardCheck, hasBadge: showAttBadge },
-    { id: 'dailytest' as ActiveTab, label: 'Daily Test', icon: PenTool },
-    { id: 'results' as ActiveTab, label: 'Results', icon: BarChart3 },
-    { id: 'funds' as ActiveTab, label: 'Funds', icon: Wallet },
+    ...(tools.attendance ? [{ id: 'attendance' as ActiveTab, label: 'Attendance', icon: ClipboardCheck, hasBadge: showAttBadge }] : []),
+    ...(tools.dailyTest ? [{ id: 'dailytest' as ActiveTab, label: 'Daily Test', icon: PenTool }] : []),
+    ...(tools.results ? [{ id: 'results' as ActiveTab, label: 'Results', icon: BarChart3 }] : []),
+    ...(tools.funds ? [{ id: 'funds' as ActiveTab, label: 'Funds', icon: Wallet }] : []),
     { id: 'students' as ActiveTab, label: 'Students', icon: Users },
-    { id: 'view' as ActiveTab, label: 'View Students', icon: FileText },
-    { id: 'classes' as ActiveTab, label: 'Classes', icon: Archive },
-    { id: 'settings' as ActiveTab, label: 'Settings', icon: Settings },
+    { id: 'view' as ActiveTab, label: 'Student list (print)', icon: FileText },
+    ...(prefs.showAdvanced ? [{ id: 'classes' as ActiveTab, label: 'Classes', icon: Archive }] : []),
+    { id: 'settings' as ActiveTab, label: 'Class details & backup', icon: Settings },
   ];
 
+  // Mobile main bottom bar tabs
+  const candidateMainTabs: { id: ActiveTab; label: string; icon: any; hasBadge?: boolean }[] = [
+    { id: 'dashboard' as ActiveTab, label: 'Home', icon: LayoutDashboard },
+    ...(tools.attendance ? [{ id: 'attendance' as ActiveTab, label: 'Attendance', icon: ClipboardCheck, hasBadge: showAttBadge }] : []),
+    ...(tools.results ? [{ id: 'results' as ActiveTab, label: 'Results', icon: BarChart3 }] : []),
+    ...(tools.funds ? [{ id: 'funds' as ActiveTab, label: 'Funds', icon: Wallet }] : []),
+  ];
+
+  // If fewer than 4 main tabs, bring Students into the mobile bottom bar for convenience
+  if (candidateMainTabs.length < 4) {
+    candidateMainTabs.push({ id: 'students' as ActiveTab, label: 'Students', icon: Users });
+  }
+  const mainTabs = candidateMainTabs.slice(0, 4);
+
+  // Mobile "More" sheet items
   const moreTabs = [
-    {
+    ...(tools.dailyTest ? [{
       id: 'dailytest' as ActiveTab,
       label: 'Daily Test Register',
       icon: PenTool,
       desc: '10-min daily tests · SED Punjab 2-page register'
-    },
-    {
+    }] : []),
+    ...(!mainTabs.some(t => t.id === 'students') ? [{
       id: 'students' as ActiveTab,
-      label: 'Students Master',
+      label: 'Students',
       icon: Users,
       desc: 'Add, edit, reorder student records'
-    },
+    }] : []),
     {
       id: 'view' as ActiveTab,
-      label: 'View Students Roster',
+      label: 'Student list (print)',
       icon: FileText,
       desc: 'Read-only directory · print or save as HD image'
     },
-    {
+    ...(prefs.showAdvanced ? [{
       id: 'classes' as ActiveTab,
       label: 'Classes',
       icon: Archive,
       desc: 'Save, switch & start classes · keep every class safe'
-    },
+    }] : []),
     {
       id: 'settings' as ActiveTab,
-      label: 'School & Class Setup',
+      label: 'Class details & backup',
       icon: Settings,
       desc: 'Class info, school logo, backup & restore'
     },
@@ -81,11 +101,7 @@ export const Navigation: React.FC = () => {
   ];
 
   const isMoreActive =
-    activeTab === 'dailytest' ||
-    activeTab === 'students' ||
-    activeTab === 'view' ||
-    activeTab === 'classes' ||
-    activeTab === 'settings';
+    !mainTabs.some(t => t.id === activeTab) && activeTab !== 'dashboard';
 
   return (
     <>
@@ -123,7 +139,10 @@ export const Navigation: React.FC = () => {
         id="bottomNavBar"
         className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200 dark:border-stone-800 pb-safe transition-colors"
       >
-        <div className="grid grid-cols-5 h-16 items-center px-1">
+        <div
+          className="grid h-16 items-center px-1"
+          style={{ gridTemplateColumns: `repeat(${mainTabs.length + 1}, minmax(0, 1fr))` }}
+        >
           {mainTabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -253,6 +272,22 @@ export const Navigation: React.FC = () => {
                 );
               })}
             </div>
+
+            {/* Need more? Show advanced tools */}
+            {!prefs.showAdvanced && (
+              <div className="p-3 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60">
+                <button
+                  type="button"
+                  onClick={() => {
+                    updatePrefs({ showAdvanced: true });
+                  }}
+                  className="w-full min-h-[44px] text-xs font-bold text-[#991B1B] dark:text-[#F87171] hover:underline cursor-pointer flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>Need more? Show advanced tools</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

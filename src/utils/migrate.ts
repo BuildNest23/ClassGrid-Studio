@@ -1,4 +1,4 @@
-import { AppData, Assessment, Fund, Student, DayAttendance, AttendanceStatus } from '../types';
+import { AppData, Assessment, Fund, Student, DayAttendance, AttendanceStatus, ClassTools } from '../types';
 
 function uid(prefix: string): string {
   return prefix + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
@@ -27,7 +27,14 @@ export function makeBaseData(): AppData {
     assessmentRemarks: {},
     funds: [],
     fundPayments: {},
-    dailyTests: {}
+    dailyTests: {},
+    tools: {
+      students: true,
+      attendance: true,
+      results: true,
+      dailyTest: false,
+      funds: false
+    }
   };
 }
 
@@ -143,6 +150,27 @@ export function normalizeData(raw: unknown): AppData {
   const str = (v: unknown, fallback: string): string =>
     typeof v === "string" ? v : (v === null || v === undefined || typeof v === "object") ? fallback : String(v);
 
+  // ---- Tools (per-class; old data with no tools = ALL tools on) ----
+  let tools: ClassTools;
+  if (isObj(src.tools)) {
+    tools = {
+      students: true,
+      attendance: src.tools.attendance !== false,
+      results: src.tools.results !== false,
+      dailyTest: !!src.tools.dailyTest,
+      funds: !!src.tools.funds
+    };
+  } else {
+    // Old data with no tools = ALL tools on
+    tools = {
+      students: true,
+      attendance: true,
+      results: true,
+      dailyTest: true,
+      funds: true
+    };
+  }
+
   return {
     schoolName: str(src.schoolName, base.schoolName),
     emisCode: typeof src.emisCode === "string" ? src.emisCode : "",
@@ -162,6 +190,7 @@ export function normalizeData(raw: unknown): AppData {
     assessmentRemarks: isObj(src.assessmentRemarks) ? src.assessmentRemarks : {},
     funds,
     fundPayments: isObj(src.fundPayments) ? src.fundPayments : {},
-    dailyTests
+    dailyTests,
+    tools
   };
 }
