@@ -55,7 +55,9 @@ export const WelcomeSheet: React.FC = () => {
       // Check if open class is blank
       const empty = isBlankClass(data);
       if (!empty) {
-        savePrefs({ welcomeDone: true });
+        // Existing teacher (data found after load): keep Advanced ON so nothing changes for them.
+        // Needed on Android, where saved data lives in SQLite and not in localStorage.
+        savePrefs({ welcomeDone: true, showAdvanced: true });
         setIsOpen(false);
         return;
       }
@@ -64,7 +66,7 @@ export const WelcomeSheet: React.FC = () => {
       try {
         const shelf = await listShelf();
         if (shelf && shelf.length > 0) {
-          savePrefs({ welcomeDone: true });
+          savePrefs({ welcomeDone: true, showAdvanced: true });
           setIsOpen(false);
           return;
         }
