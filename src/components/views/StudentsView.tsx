@@ -137,10 +137,21 @@ export const StudentsView: React.FC = () => {
         createdAt: Date.now()
       };
 
-      saveData(prev => ({
-        ...prev,
-        students: [...prev.students, newStudent]
-      }));
+      saveData(prev => {
+        // A custom roll number places the student at that position and renumbers the class
+        // (same rule as editing a roll number); otherwise the student is appended with the next roll.
+        const target = parseInt(rollNo.trim(), 10);
+        if (rollNo.trim() && !isNaN(target)) {
+          let insertAt = prev.students.findIndex(s => {
+            const r = parseInt(s.rollNo, 10);
+            return !isNaN(r) && r >= target;
+          });
+          if (insertAt === -1) insertAt = prev.students.length;
+          const reordered = [...prev.students.slice(0, insertAt), newStudent, ...prev.students.slice(insertAt)];
+          return { ...prev, students: syncRollNumbers(reordered) };
+        }
+        return { ...prev, students: [...prev.students, newStudent] };
+      });
 
       toast("Student added.", "success");
       setRollNo("");
@@ -527,8 +538,11 @@ export const StudentsView: React.FC = () => {
           </div>
         ) : (
           filteredStudents.map((s, idx) => {
-            const isFirst = idx === 0;
-            const isLast = idx === filteredStudents.length - 1;
+            // Move Up/Down swaps with the neighbour in the FULL list, so it is only offered when the
+            // list is unfiltered (otherwise it would swap with a hidden student).
+            const isFiltering = search.trim() !== "";
+            const isFirst = isFiltering || idx === 0;
+            const isLast = isFiltering || idx === filteredStudents.length - 1;
 
             return (
               <div

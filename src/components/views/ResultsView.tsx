@@ -1378,7 +1378,7 @@ export const ResultsView: React.FC = () => {
             {collapse.printOptions && (
               <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] mt-0.5 leading-snug">
                 {printStyle === 'a' ? 'Design A — Colour' : 'Design B — Black & White'}
-                {printFooter ? ` • Footer: "${printFooter.slice(0, 24)}..."` : ''} • Click to expand
+                {printFooter ? ` • Footer: "${printFooter.slice(0, 24)}${printFooter.length > 24 ? '...' : ''}"` : ''} • Click to expand
               </p>
             )}
           </div>

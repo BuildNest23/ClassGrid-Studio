@@ -55,7 +55,9 @@ export const FundsView: React.FC = () => {
   // Snug Name column: exact width of the longest student name in the active class
   const nameColWidth = useMemo(
     () => getNameColWidth(sortedStudents.map(s => s.name || "")),
-    [sortedStudents]
+    // sortedStudents is a fresh array every render; depend on the data it is derived from
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.students]
   );
 
   // 1. FUND LIST VIEW

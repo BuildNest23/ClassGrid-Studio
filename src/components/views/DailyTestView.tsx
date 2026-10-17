@@ -230,7 +230,9 @@ export const DailyTestView: React.FC = () => {
   // Quick Action 1: Pre-fill 'A' from Attendance for this date
   const handleSyncAbsentsFromAttendance = () => {
     const attendanceDay = data.attendance[selectedDate];
-    if (!attendanceDay || !attendanceDay.status || Object.keys(attendanceDay.status).length === 0) {
+    // A roll call with everyone present is stored as an empty status map ("Mark All Present"),
+    // so only a missing day means "not recorded". Holidays are checked before counting absentees.
+    if (!attendanceDay) {
       toast(`No attendance roll call recorded for ${prettyDate(selectedDate)}.`, 'info');
       return;
     }
@@ -240,24 +242,21 @@ export const DailyTestView: React.FC = () => {
       return;
     }
 
-    let markedCount = 0;
-    saveData(prev => {
-      const dayMap = { ...(prev.dailyTests[selectedDate] || {}) };
-      sortedStudents.forEach(s => {
-        const attStatus = attendanceDay.status[s.id];
-        if (attStatus === 'A') {
-          dayMap[s.id] = 'A';
-          markedCount++;
-        }
+    const absentIds = sortedStudents.filter(s => (attendanceDay.status || {})[s.id] === 'A').map(s => s.id);
+    const markedCount = absentIds.length;
+    if (markedCount > 0) {
+      saveData(prev => {
+        const dayMap = { ...(prev.dailyTests[selectedDate] || {}) };
+        absentIds.forEach(sid => { dayMap[sid] = 'A'; });
+        return {
+          ...prev,
+          dailyTests: {
+            ...prev.dailyTests,
+            [selectedDate]: dayMap
+          }
+        };
       });
-      return {
-        ...prev,
-        dailyTests: {
-          ...prev.dailyTests,
-          [selectedDate]: dayMap
-        }
-      };
-    });
+    }
 
     if (markedCount > 0) {
       toast(`Marked ${markedCount} absent student${markedCount === 1 ? '' : 's'} from today's attendance.`, 'success');

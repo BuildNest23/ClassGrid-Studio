@@ -556,7 +556,7 @@ export const AttendanceView: React.FC = () => {
             type="month"
             value={registerMonth}
             max={todayKey().slice(0, 7)}
-            onChange={e => setRegisterMonth(e.target.value)}
+            onChange={e => { if (e.target.value) setRegisterMonth(e.target.value); }}
             className="p-1.5 px-2.5 text-xs rounded-xl border border-[#D6D3D1] dark:border-[#44403C] bg-white dark:bg-[#0C0A09] text-inherit"
           />
         </div>

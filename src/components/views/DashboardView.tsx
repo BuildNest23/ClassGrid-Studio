@@ -33,7 +33,9 @@ export const DashboardView: React.FC = () => {
     classAttendanceThisMonth,
     classAttendanceForMonth,
     classFundsSummary,
-    classAverageForAssessment
+    classAverageForAssessment,
+    assessmentEntryCount,
+    computeFundStats
   } = useClassroom();
 
   const [hideGS, setHideGS] = useState(() => localStorage.getItem("classroomHideGS") === "1");
@@ -66,7 +68,8 @@ export const DashboardView: React.FC = () => {
 
   // Snapshot calculations
   const attThisMonth = classAttendanceThisMonth();
-  const todayDenom = c.present + c.absent;
+  // countDay() reports "everyone present" for a day without a roll call, so only count a taken, non-holiday day
+  const todayDenom = c.taken && !c.holiday ? c.present + c.absent : 0;
   const todayPct = todayDenom > 0 ? Math.round((c.present / todayDenom) * 100) : 0;
 
   const latestAsmt = data.assessments.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
@@ -364,7 +367,7 @@ export const DashboardView: React.FC = () => {
 
           <div className="divide-y divide-[#E7E5E4] dark:divide-[#44403C]">
             {data.assessments.slice(-3).reverse().map(a => {
-              const entered = useClassroom().assessmentEntryCount(a.id);
+              const entered = assessmentEntryCount(a.id);
               const progressPct = totalStudents ? Math.round((entered / totalStudents) * 100) : 0;
               const complete = entered >= totalStudents && totalStudents > 0;
 
@@ -419,7 +422,7 @@ export const DashboardView: React.FC = () => {
 
           <div className="divide-y divide-[#E7E5E4] dark:divide-[#44403C]">
             {data.funds.slice(-3).reverse().map(f => {
-              const st = useClassroom().computeFundStats(f.id);
+              const st = computeFundStats(f.id);
               const overdue = f.dueDate && f.dueDate < todayKey() && st.pct < 100;
 
               return (

@@ -231,11 +231,15 @@ export const SettingsView: React.FC = () => {
     const filename = `classroom-backup-${stamp}.json`;
     const title = `ClassGrid Backup (${stamp})`;
 
-    await exportFileBlob(blob, filename, {
+    const exported = await exportFileBlob(blob, filename, {
       title,
       dialogTitle: "Save or Share Backup File",
       preferShareOnWeb: false
     });
+    if (!exported) {
+      toast("Could not export the backup file.", "error");
+      return;
+    }
 
     try { localStorage.setItem(LAST_BACKUP_KEY, String(Date.now())); } catch { /* ignore */ }
     setLastBackup(Date.now());
@@ -324,9 +328,8 @@ export const SettingsView: React.FC = () => {
     });
     if (!ok2) return;
 
-    resetEverything();
-
-    toast("All data has been reset.", "success");
+    // resetEverything() already shows its own confirmation toast
+    await resetEverything();
     setActiveTab("dashboard");
   };
 
