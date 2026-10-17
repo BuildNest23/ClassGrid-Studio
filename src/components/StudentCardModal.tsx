@@ -101,8 +101,12 @@ export const StudentCardModal: React.FC<Props> = ({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      else if (e.key === 'ArrowLeft') go(-1);
+      if (e.key === 'Escape') { onClose(); return; }
+      // Arrow keys inside the receipt/watermark options (text input, select, sliders) must move the
+      // caret / value there, not jump to another student.
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+      if (e.key === 'ArrowLeft') go(-1);
       else if (e.key === 'ArrowRight') go(1);
     };
     window.addEventListener('keydown', onKey);
