@@ -25,6 +25,8 @@ import { Capacitor } from '@capacitor/core';
 import { getStorage } from '../../storage';
 import { getLastAutoBackupTimestamp } from '../../storage/autoBackup';
 import { useCapsPrint, saveCapsPrint } from '../../utils/capsPrint';
+import { NewClassDialog, shelveOpenClass } from './ClassesView';
+import { setActiveShelfId } from '../../utils/classShelf';
 
 const LAST_BACKUP_KEY = 'classgrid_last_backup';
 const STORAGE_LIMIT_CHARS = 5 * 1024 * 1024; // browsers allow roughly 5 MB of local storage
@@ -66,6 +68,7 @@ export const SettingsView: React.FC = () => {
     openHelp
   } = useClassroom();
 
+  const [showNewClass, setShowNewClass] = useState(false);
   const [className, setClassName] = useState(data.className);
   const [inchargeName, setInchargeName] = useState(data.inchargeName);
   const [schoolName, setSchoolName] = useState(data.schoolName);
@@ -327,6 +330,20 @@ export const SettingsView: React.FC = () => {
       icon: "warning"
     });
     if (!ok2) return;
+
+    // Safety net: put the open class on the Classes shelf first, so an accidental wipe is recoverable.
+    try {
+      await shelveOpenClass(data);
+    } catch (e) {
+      const goOn = await uiConfirm("Could not save a copy of the open class to Classes (storage may be full). Erase everything anyway?", {
+        title: "No safety copy",
+        yesText: "Erase anyway",
+        danger: true,
+        icon: "warning"
+      });
+      if (!goOn) return;
+    }
+    setActiveShelfId(null);
 
     // resetEverything() already shows its own confirmation toast
     await resetEverything();
@@ -735,6 +752,31 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Start a new class (safe) */}
+      <div className="bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#44403C] rounded-xl p-4 shadow-xs space-y-2">
+        <h3 className="text-sm font-bold font-serif-academic text-[#1C1917] dark:text-[#F5F5F4]">Start a new class</h3>
+        <p className="text-xs text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+          Saves the open class in the <b>Classes</b> tab, then gives you an empty class. Nothing is lost, and you can switch back any time.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowNewClass(true)}
+            className="py-2 px-3 text-xs font-bold rounded-lg bg-[#991B1B] text-white hover:bg-[#7F1D1D] cursor-pointer"
+          >
+            Start new class
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("classes")}
+            className="py-2 px-3 text-xs font-bold rounded-lg bg-[#EFEBE2] dark:bg-[#2A261F] text-[#232019] dark:text-[#EFE9DD] hover:bg-[#E5DFD0] cursor-pointer"
+          >
+            Open Classes
+          </button>
+        </div>
+      </div>
+      {showNewClass && <NewClassDialog onClose={() => setShowNewClass(false)} onDone={() => setActiveTab("dashboard")} />}
+
       {/* Danger Zone */}
       <div className="bg-red-50 dark:bg-red-950/20 border-2 border-red-300 dark:border-red-900 rounded-xl p-4 shadow-xs space-y-2">
         <h3 className="text-sm font-bold font-serif-academic text-[#991B1B] dark:text-red-400 flex items-center gap-2">
@@ -742,7 +784,7 @@ export const SettingsView: React.FC = () => {
           <span>Danger Zone — Reset Everything</span>
         </h3>
         <p className="text-xs text-[#991B1B] dark:text-red-300 leading-relaxed">
-          This will permanently wipe all enrolled students, attendance logs, assessments, and fund payments. Make sure you have exported a JSON backup first.
+          Wipes the open class completely (students, attendance, assessments, fund payments). A copy of it is put in Classes first, and classes already saved there are not touched. For a normal new class, use Start a new class above instead.
         </p>
         <button
           type="button"
