@@ -107,7 +107,8 @@ export async function saveToShelf(
 ): Promise<ShelfEntry> {
   const index = await readIndex();
   const existing = opts.id ? index.find(e => e.id === opts.id) : undefined;
-  const id = existing ? existing.id : newId();
+  // A given id that is not on the shelf yet is reused (keeps re-imported classes from duplicating).
+  const id = existing ? existing.id : opts.id || newId();
   const name = (opts.name || existing?.name || defaultClassName(d)).trim() || 'Untitled class';
   const now = Date.now();
 
@@ -169,7 +170,10 @@ export async function importIntoShelf(parsed: unknown): Promise<number> {
   if (p && p.app === 'ClassGridShelf' && Array.isArray(p.classes)) {
     for (const c of p.classes) if (c && c.data) added.push({ name: c.name, data: c.data });
   } else if (p && p.data && typeof p.data === 'object') {
-    added.push({ data: p.data }); // regular Export Backup file
+    added.push({ data: p.data }); // regular Export Backup file (the open class)
+    if (Array.isArray(p.classes)) {
+      for (const c of p.classes) if (c && c.data) added.push({ name: c.name, data: c.data });
+    }
   } else if (p && typeof p === 'object' && Array.isArray(p.students)) {
     added.push({ data: p }); // bare data
   }
@@ -210,4 +214,29 @@ export function makeNewClassData(current: AppData, keepSchool: boolean): AppData
     printNote: current.printNote,
     forceOrientation: current.forceOrientation
   };
+}
+
+/** All saved classes with their ids, for the main backup file. */
+export async function exportAllClasses(): Promise<Array<{ id: string; name: string; data: AppData }>> {
+  const index = await listShelf();
+  const out: Array<{ id: string; name: string; data: AppData }> = [];
+  for (const e of index) {
+    const data = await loadFromShelf(e.id);
+    if (data) out.push({ id: e.id, name: e.name, data });
+  }
+  return out;
+}
+
+/** Puts classes from a main backup file back on the shelf (same id = updated, not duplicated). */
+export async function restoreClasses(list: unknown): Promise<number> {
+  if (!Array.isArray(list)) return 0;
+  let n = 0;
+  for (const c of list) {
+    if (!c || typeof c !== 'object' || !(c as any).data) continue;
+    const data = normalizeData((c as any).data);
+    const id = typeof (c as any).id === 'string' ? (c as any).id : undefined;
+    await saveToShelf(data, { id, name: typeof (c as any).name === 'string' ? (c as any).name : undefined });
+    n++;
+  }
+  return n;
 }
